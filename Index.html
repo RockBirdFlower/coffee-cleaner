@@ -1,11 +1,366 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Test</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>☕ 커피머신 청소 당번</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
+<div class="container">
+  <header>
+    <div class="logo">☕</div>
+    <h1>커피머신 청소</h1>
+    <p class="subtitle">CLEANING ROTATION SYSTEM</p>
+  </header>
+
   
+<div class="pw-overlay" id="pwOverlay">
+  <div class="pw-box">
+    <div class="pw-logo">☕</div>
+    <div class="pw-title">커피머신 청소</div>
+    <div class="pw-sub">CLEANING ROTATION SYSTEM</div>
+    <input class="pw-input" type="password" id="pwInput" placeholder="비밀번호 입력" onkeydown="if(event.key==='Enter')checkPw()" />
+    <button class="pw-btn" onclick="checkPw()">입장</button>
+    <div class="pw-error" id="pwError">비밀번호가 틀렸습니다</div>
+  </div>
+</div>
+
+<div id="loading" class="loading">
+    <div class="spinner"></div>
+    LOADING...
+  </div>
+
+  <div id="app" style="display:none">
+    <div id="notice" class="notice"></div>
+
+    <div class="current-card">
+      <div class="current-label"><span class="dot"></span>이번 당번</div>
+      <div class="current-name" id="currentName">—</div>
+      <div class="current-date" id="currentDate"></div>
+      <div id="currentStatus"></div>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-done" onclick="markDone()">✅ 청소 완료</button>
+      <button class="btn btn-skip" onclick="markSkip()">⏭ 건너뜀</button>
+    </div>
+
+    <div class="section-header">
+      <span class="section-title">순서</span>
+      <button class="btn-edit" id="editBtn" onclick="toggleEdit()">✏️ 순서 편집</button>
+    </div>
+    <div class="queue-list" id="queueList"></div>
+    <div class="edit-hint" id="editHint">☝️ 드래그해서 순서를 변경하세요</div>
+
+    <div class="section-header" style="margin-top:12px">
+      <span class="section-title">히스토리</span>
+    </div>
+    <div class="history-list" id="historyList"></div>
+  </div>
+</div>
+
+<script type="module">
+
+  // ── Password ──
+  const CORRECT_PW = '%%APP_PASSWORD%%';
+
+  function checkPw() {
+    const input = document.getElementById('pwInput');
+    const errEl = document.getElementById('pwError');
+    if (input.value === CORRECT_PW) {
+      document.getElementById('pwOverlay').style.display = 'none';
+      sessionStorage.setItem('auth', '1');
+    } else {
+      input.classList.add('error');
+      errEl.style.display = 'block';
+      setTimeout(() => input.classList.remove('error'), 400);
+      input.value = '';
+    }
+  }
+
+  if (sessionStorage.getItem('auth') === '1') {
+    document.getElementById('pwOverlay').style.display = 'none';
+  }
+
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getDatabase, ref, onValue, set, get } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "%%FIREBASE_API_KEY%%",
+    authDomain: "%%FIREBASE_AUTH_DOMAIN%%",
+    databaseURL: "%%FIREBASE_DATABASE_URL%%",
+    projectId: "%%FIREBASE_PROJECT_ID%%",
+    storageBucket: "%%FIREBASE_STORAGE_BUCKET%%",
+    messagingSenderId: "%%FIREBASE_MESSAGING_SENDER_ID%%",
+    appId: "%%FIREBASE_APP_ID%%"
+  };
+
+  const MEMBERS = ["김정태","손형수","이용혁","강궁현","유지헌","신수빈","김민채"];
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+  const stateRef = ref(db, 'cleaningState');
+
+  let state = null;
+  let isEditMode = false;
+  let dragSrcIdx = null;
+
+  // Touch drag state
+  let touchSrcIdx = null;
+  let touchClone = null;
+  let touchOffsetY = 0;
+
+  async function initState() {
+    const snap = await get(stateRef);
+    if (!snap.exists()) {
+      await set(stateRef, {
+        currentIndex: 0,
+        queue: MEMBERS.map(name => ({ name, skipped: false })),
+        history: [],
+        lastUpdated: new Date().toISOString(),
+        notice: ""
+      });
+    }
+  }
+
+  function formatDate(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  }
+
+  function render(s) {
+    state = s;
+    const current = s.queue[s.currentIndex];
+
+    document.getElementById('currentName').textContent = current?.name || '—';
+    document.getElementById('currentDate').textContent = '마지막 업데이트: ' + formatDate(s.lastUpdated);
+
+    const statusEl = document.getElementById('currentStatus');
+    statusEl.innerHTML = current?.skipped
+      ? '<span class="status-badge skipped">⚠️ 건너뜀 상태</span>'
+      : '<span class="status-badge pending">⏳ 청소 대기 중</span>';
+
+    const noticeEl = document.getElementById('notice');
+    if (s.notice) {
+      noticeEl.textContent = '📢 ' + s.notice;
+      noticeEl.classList.add('show');
+    } else {
+      noticeEl.classList.remove('show');
+    }
+
+    renderQueue(s);
+    renderHistory(s);
+  }
+
+  function renderQueue(s) {
+    const queueEl = document.getElementById('queueList');
+    queueEl.className = 'queue-list' + (isEditMode ? ' edit-mode' : '');
+    queueEl.innerHTML = '';
+
+    s.queue.forEach((item, i) => {
+      const isCurrent = i === s.currentIndex;
+      const div = document.createElement('div');
+      div.className = `queue-item${isCurrent ? ' is-current' : ''}`;
+      div.draggable = isEditMode;
+      div.dataset.idx = i;
+
+      div.innerHTML = `
+        <span class="drag-handle" style="cursor:${isEditMode ? 'grab' : 'default'}">⠿</span>
+        <span class="queue-num">${String(i+1).padStart(2,'0')}</span>
+        <span class="queue-name">${item.name}</span>
+        ${isCurrent ? '<span class="queue-tag tag-current">당번</span>' : ''}
+        ${item.skipped && !isCurrent ? '<span class="queue-tag tag-skipped">건너뜀</span>' : ''}
+        ${isEditMode && !isCurrent ? `<button class="btn-set-current" onclick="setCurrent(${i})">당번 지정</button>` : ''}
+      `;
+
+      if (isEditMode) {
+        div.addEventListener('dragstart', onDragStart);
+        div.addEventListener('dragover', onDragOver);
+        div.addEventListener('dragleave', onDragLeave);
+        div.addEventListener('drop', onDrop);
+        div.addEventListener('dragend', onDragEnd);
+        div.addEventListener('touchstart', onTouchStart, { passive: true });
+        div.addEventListener('touchmove', onTouchMove, { passive: false });
+        div.addEventListener('touchend', onTouchEnd);
+      }
+
+      queueEl.appendChild(div);
+    });
+
+    const hint = document.getElementById('editHint');
+    hint.style.display = isEditMode ? 'block' : 'none';
+  }
+
+  function renderHistory(s) {
+    const histEl = document.getElementById('historyList');
+    if (!s.history || s.history.length === 0) {
+      histEl.innerHTML = '<div class="empty-history">아직 기록이 없어요</div>';
+      return;
+    }
+    histEl.innerHTML = [...s.history].reverse().slice(0, 10).map(h => `
+      <div class="history-item">
+        <span class="history-icon">${h.result === 'done' ? '✅' : '⏭'}</span>
+        <span class="history-name">${h.name}</span>
+        <span class="history-result ${h.result === 'done' ? 'result-done' : 'result-skipped'}">${h.result === 'done' ? '완료' : '건너뜀'}</span>
+        <span class="history-date">${formatDate(h.date)}</span>
+      </div>
+    `).join('');
+  }
+
+  // ── Desktop drag ──
+  function onDragStart(e) {
+    dragSrcIdx = parseInt(e.currentTarget.dataset.idx);
+    setTimeout(() => e.currentTarget.classList.add('dragging'), 0);
+    e.dataTransfer.effectAllowed = 'move';
+  }
+
+  function onDragOver(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    e.currentTarget.classList.add('drag-over');
+  }
+
+  function onDragLeave(e) {
+    e.currentTarget.classList.remove('drag-over');
+  }
+
+  async function onDrop(e) {
+    e.preventDefault();
+    const targetIdx = parseInt(e.currentTarget.dataset.idx);
+    document.querySelectorAll('.queue-item').forEach(el => el.classList.remove('drag-over', 'dragging'));
+    if (dragSrcIdx !== null && dragSrcIdx !== targetIdx) await reorder(dragSrcIdx, targetIdx);
+    dragSrcIdx = null;
+  }
+
+  function onDragEnd() {
+    document.querySelectorAll('.queue-item').forEach(el => el.classList.remove('dragging', 'drag-over'));
+    dragSrcIdx = null;
+  }
+
+  // ── Mobile touch drag ──
+  function onTouchStart(e) {
+    touchSrcIdx = parseInt(e.currentTarget.dataset.idx);
+    const touch = e.touches[0];
+    const rect = e.currentTarget.getBoundingClientRect();
+    touchOffsetY = touch.clientY - rect.top;
+
+    touchClone = e.currentTarget.cloneNode(true);
+    Object.assign(touchClone.style, {
+      position: 'fixed',
+      left: rect.left + 'px',
+      top: rect.top + 'px',
+      width: rect.width + 'px',
+      opacity: '0.85',
+      pointerEvents: 'none',
+      zIndex: '9999',
+      background: '#2a2420',
+      borderRadius: '12px',
+      border: '1px solid #c8a26a',
+      boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+      transition: 'none'
+    });
+    document.body.appendChild(touchClone);
+    e.currentTarget.classList.add('dragging');
+  }
+
+  function onTouchMove(e) {
+    e.preventDefault();
+    const touch = e.touches[0];
+    if (touchClone) touchClone.style.top = (touch.clientY - touchOffsetY) + 'px';
+    document.querySelectorAll('.queue-item').forEach(el => el.classList.remove('drag-over'));
+    const el = document.elementFromPoint(touch.clientX, touch.clientY)?.closest('.queue-item');
+    if (el) el.classList.add('drag-over');
+  }
+
+  async function onTouchEnd(e) {
+    const touch = e.changedTouches[0];
+    const el = document.elementFromPoint(touch.clientX, touch.clientY)?.closest('.queue-item');
+    const targetIdx = el ? parseInt(el.dataset.idx) : null;
+    if (touchClone) { touchClone.remove(); touchClone = null; }
+    document.querySelectorAll('.queue-item').forEach(el => el.classList.remove('dragging', 'drag-over'));
+    if (touchSrcIdx !== null && targetIdx !== null && touchSrcIdx !== targetIdx) {
+      await reorder(touchSrcIdx, targetIdx);
+    }
+    touchSrcIdx = null;
+  }
+
+  // ── Reorder logic ──
+  async function reorder(fromIdx, toIdx) {
+    if (!state) return;
+    const s = JSON.parse(JSON.stringify(state));
+
+    // 현재 당번 이름 기억
+    const currentPersonName = s.queue[s.currentIndex].name;
+
+    const [moved] = s.queue.splice(fromIdx, 1);
+    s.queue.splice(toIdx, 0, moved);
+
+    // 이름으로 새 인덱스 찾기
+    s.currentIndex = s.queue.findIndex(item => item.name === currentPersonName);
+
+    s.lastUpdated = new Date().toISOString();
+    s.notice = `순서가 변경되었습니다.`;
+    await set(stateRef, s);
+  }
+
+  // ── Public actions ──
+  window.toggleEdit = function() {
+    isEditMode = !isEditMode;
+    const btn = document.getElementById('editBtn');
+    btn.textContent = isEditMode ? '✅ 편집 완료' : '✏️ 순서 편집';
+    btn.classList.toggle('active', isEditMode);
+    if (state) renderQueue(state);
+  };
+
+  window.markDone = async function() {
+    if (!state) return;
+    const s = JSON.parse(JSON.stringify(state));
+    const current = s.queue[s.currentIndex];
+    if (!s.history) s.history = [];
+    s.history.push({ name: current.name, result: 'done', date: new Date().toISOString() });
+    s.queue.splice(s.currentIndex, 1);
+    s.queue.push({ name: current.name, skipped: false });
+    if (s.currentIndex >= s.queue.length) s.currentIndex = 0;
+    s.lastUpdated = new Date().toISOString();
+    s.notice = `${current.name}님이 청소를 완료했습니다! 다음 당번: ${s.queue[s.currentIndex].name}`;
+    await set(stateRef, s);
+  };
+
+  window.markSkip = async function() {
+    if (!state) return;
+    const s = JSON.parse(JSON.stringify(state));
+    const current = s.queue[s.currentIndex];
+    if (!s.history) s.history = [];
+    s.history.push({ name: current.name, result: 'skipped', date: new Date().toISOString() });
+    s.queue[s.currentIndex].skipped = true;
+    const skipped = s.queue.splice(s.currentIndex, 1)[0];
+    s.queue.splice(s.currentIndex + 1, 0, skipped);
+    if (s.currentIndex >= s.queue.length) s.currentIndex = 0;
+    s.lastUpdated = new Date().toISOString();
+    s.notice = `${current.name}님이 건너뜀. 다음 당번: ${s.queue[s.currentIndex].name}`;
+    await set(stateRef, s);
+  };
+
+
+  window.setCurrent = async function(idx) {
+    if (!state) return;
+    const s = JSON.parse(JSON.stringify(state));
+    s.currentIndex = idx;
+    s.lastUpdated = new Date().toISOString();
+    s.notice = `당번이 ${s.queue[idx].name}님으로 변경되었습니다.`;
+    await set(stateRef, s);
+  };
+
+  // ── Init ──
+  await initState();
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+
+  onValue(stateRef, (snap) => {
+    if (snap.exists()) render(snap.val());
+  });
+</script>
 </body>
 </html>
