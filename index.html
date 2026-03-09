@@ -61,31 +61,35 @@
   </div>
 </div>
 
-<script type="module">
+<script>
+  // ── Password (해시 비교 - 원문 노출 방지) ──
+  var CORRECT_PW_HASH = '%%APP_PASSWORD_HASH%%';
 
-  // ── Password ──
-  const CORRECT_PW = '%%APP_PASSWORD%%';
-
-  window.checkPw = function() {
-    const input = document.getElementById('pwInput');
-    const errEl = document.getElementById('pwError');
-    if (input.value === CORRECT_PW) {
+  async function checkPw() {
+    var input = document.getElementById('pwInput');
+    var errEl = document.getElementById('pwError');
+    var data = new TextEncoder().encode(input.value);
+    var hashBuf = await crypto.subtle.digest('SHA-256', data);
+    var hashHex = Array.from(new Uint8Array(hashBuf)).map(function(b) { return b.toString(16).padStart(2, '0'); }).join('');
+    if (hashHex === CORRECT_PW_HASH) {
       document.getElementById('pwOverlay').style.display = 'none';
       sessionStorage.setItem('auth', '1');
     } else {
       input.classList.add('error');
       errEl.style.display = 'block';
-      setTimeout(() => input.classList.remove('error'), 400);
+      setTimeout(function() { input.classList.remove('error'); }, 400);
       input.value = '';
     }
-  };
+  }
 
   if (sessionStorage.getItem('auth') === '1') {
     document.getElementById('pwOverlay').style.display = 'none';
   }
+</script>
 
+<script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getDatabase, ref, onValue, set, get } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+  import { getDatabase, ref, onValue, set, get, runTransaction } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
   const firebaseConfig = {
     apiKey: "%%FIREBASE_API_KEY%%",
@@ -97,7 +101,7 @@
     appId: "%%FIREBASE_APP_ID%%"
   };
 
-  const MEMBERS = ["김정태","손형수","이용혁","강궁현","유지헌","신수빈","김민채"];
+  const MEMBERS = ["강궁현","김정태","손형수","유지헌","이용혁"];
   const app = initializeApp(firebaseConfig);
   const db = getDatabase(app);
   const stateRef = ref(db, 'cleaningState');
@@ -113,7 +117,11 @@
 
   async function initState() {
     const snap = await get(stateRef);
-    if (!snap.exists()) {
+    const existing = snap.exists() ? snap.val() : null;
+    const existingNames = existing?.queue?.map(q => q.name).sort().join(',') || '';
+    const newNames = [...MEMBERS].sort().join(',');
+
+    if (!existing || existingNames !== newNames) {
       await set(stateRef, {
         currentIndex: 0,
         queue: MEMBERS.map(name => ({ name, skipped: false })),
@@ -130,8 +138,16 @@
     return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
   }
 
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
   function render(s) {
     state = s;
+    if (!s.queue || s.queue.length === 0) return;
+    if (s.currentIndex < 0 || s.currentIndex >= s.queue.length) s.currentIndex = 0;
     const current = s.queue[s.currentIndex];
 
     document.getElementById('currentName').textContent = current?.name || '—';
@@ -169,7 +185,7 @@
       div.innerHTML = `
         <span class="drag-handle" style="cursor:${isEditMode ? 'grab' : 'default'}">⠿</span>
         <span class="queue-num">${String(i+1).padStart(2,'0')}</span>
-        <span class="queue-name">${item.name}</span>
+        <span class="queue-name">${escapeHtml(item.name)}</span>
         ${isCurrent ? '<span class="queue-tag tag-current">당번</span>' : ''}
         ${item.skipped && !isCurrent ? '<span class="queue-tag tag-skipped">건너뜀</span>' : ''}
         ${isEditMode && !isCurrent ? `<button class="btn-set-current" onclick="setCurrent(${i})">당번 지정</button>` : ''}
@@ -202,7 +218,7 @@
     histEl.innerHTML = [...s.history].reverse().slice(0, 10).map(h => `
       <div class="history-item">
         <span class="history-icon">${h.result === 'done' ? '✅' : '⏭'}</span>
-        <span class="history-name">${h.name}</span>
+        <span class="history-name">${escapeHtml(h.name)}</span>
         <span class="history-result ${h.result === 'done' ? 'result-done' : 'result-skipped'}">${h.result === 'done' ? '완료' : '건너뜀'}</span>
         <span class="history-date">${formatDate(h.date)}</span>
       </div>
@@ -289,20 +305,18 @@
   // ── Reorder logic ──
   async function reorder(fromIdx, toIdx) {
     if (!state) return;
-    const s = JSON.parse(JSON.stringify(state));
+    await runTransaction(stateRef, (s) => {
+      if (!s || !s.queue || fromIdx >= s.queue.length || toIdx >= s.queue.length) return s;
 
-    // 현재 당번 이름 기억
-    const currentPersonName = s.queue[s.currentIndex].name;
+      const currentPersonName = s.queue[s.currentIndex].name;
+      const [moved] = s.queue.splice(fromIdx, 1);
+      s.queue.splice(toIdx, 0, moved);
+      s.currentIndex = s.queue.findIndex(item => item.name === currentPersonName);
 
-    const [moved] = s.queue.splice(fromIdx, 1);
-    s.queue.splice(toIdx, 0, moved);
-
-    // 이름으로 새 인덱스 찾기
-    s.currentIndex = s.queue.findIndex(item => item.name === currentPersonName);
-
-    s.lastUpdated = new Date().toISOString();
-    s.notice = `순서가 변경되었습니다.`;
-    await set(stateRef, s);
+      s.lastUpdated = new Date().toISOString();
+      s.notice = `순서가 변경되었습니다.`;
+      return s;
+    });
   }
 
   // ── Public actions ──
@@ -315,52 +329,66 @@
   };
 
   window.markDone = async function() {
-    if (!state) return;
-    const s = JSON.parse(JSON.stringify(state));
-    const current = s.queue[s.currentIndex];
-    if (!s.history) s.history = [];
-    s.history.push({ name: current.name, result: 'done', date: new Date().toISOString() });
-    s.queue.splice(s.currentIndex, 1);
-    s.queue.push({ name: current.name, skipped: false });
-    if (s.currentIndex >= s.queue.length) s.currentIndex = 0;
-    s.lastUpdated = new Date().toISOString();
-    s.notice = `${current.name}님이 청소를 완료했습니다! 다음 당번: ${s.queue[s.currentIndex].name}`;
-    await set(stateRef, s);
+    if (!state || !state.queue || state.queue.length === 0) return;
+    await runTransaction(stateRef, (s) => {
+      if (!s || !s.queue || s.queue.length === 0) return s;
+      if (s.currentIndex >= s.queue.length) s.currentIndex = 0;
+      const current = s.queue[s.currentIndex];
+      if (!s.history) s.history = [];
+      s.history.push({ name: current.name, result: 'done', date: new Date().toISOString() });
+      s.queue.splice(s.currentIndex, 1);
+      s.queue.push({ name: current.name, skipped: false });
+      if (s.currentIndex >= s.queue.length) s.currentIndex = 0;
+      s.lastUpdated = new Date().toISOString();
+      s.notice = `${current.name}님이 청소를 완료했습니다! 다음 당번: ${s.queue[s.currentIndex].name}`;
+      return s;
+    });
   };
 
   window.markSkip = async function() {
-    if (!state) return;
-    const s = JSON.parse(JSON.stringify(state));
-    const current = s.queue[s.currentIndex];
-    if (!s.history) s.history = [];
-    s.history.push({ name: current.name, result: 'skipped', date: new Date().toISOString() });
-    s.queue[s.currentIndex].skipped = true;
-    const skipped = s.queue.splice(s.currentIndex, 1)[0];
-    s.queue.splice(s.currentIndex + 1, 0, skipped);
-    if (s.currentIndex >= s.queue.length) s.currentIndex = 0;
-    s.lastUpdated = new Date().toISOString();
-    s.notice = `${current.name}님이 건너뜀. 다음 당번: ${s.queue[s.currentIndex].name}`;
-    await set(stateRef, s);
+    if (!state || !state.queue || state.queue.length === 0) return;
+    await runTransaction(stateRef, (s) => {
+      if (!s || !s.queue || s.queue.length === 0) return s;
+      if (s.currentIndex >= s.queue.length) s.currentIndex = 0;
+      const current = s.queue[s.currentIndex];
+      if (!s.history) s.history = [];
+      s.history.push({ name: current.name, result: 'skipped', date: new Date().toISOString() });
+      s.queue[s.currentIndex].skipped = true;
+      const skipped = s.queue.splice(s.currentIndex, 1)[0];
+      const insertIdx = Math.min(s.currentIndex + 1, s.queue.length);
+      s.queue.splice(insertIdx, 0, skipped);
+      if (s.currentIndex >= s.queue.length) s.currentIndex = 0;
+      s.lastUpdated = new Date().toISOString();
+      s.notice = `${current.name}님이 건너뜀. 다음 당번: ${s.queue[s.currentIndex].name}`;
+      return s;
+    });
   };
 
 
   window.setCurrent = async function(idx) {
-    if (!state) return;
-    const s = JSON.parse(JSON.stringify(state));
-    s.currentIndex = idx;
-    s.lastUpdated = new Date().toISOString();
-    s.notice = `당번이 ${s.queue[idx].name}님으로 변경되었습니다.`;
-    await set(stateRef, s);
+    if (!state || !state.queue || idx < 0 || idx >= state.queue.length) return;
+    await runTransaction(stateRef, (s) => {
+      if (!s || !s.queue || idx >= s.queue.length) return s;
+      s.currentIndex = idx;
+      s.lastUpdated = new Date().toISOString();
+      s.notice = `당번이 ${s.queue[idx].name}님으로 변경되었습니다.`;
+      return s;
+    });
   };
 
   // ── Init ──
-  await initState();
-  document.getElementById('loading').style.display = 'none';
-  document.getElementById('app').style.display = 'block';
+  try {
+    await initState();
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
 
-  onValue(stateRef, (snap) => {
-    if (snap.exists()) render(snap.val());
-  });
+    onValue(stateRef, (snap) => {
+      if (snap.exists()) render(snap.val());
+    });
+  } catch (e) {
+    document.getElementById('loading').innerHTML =
+      '<div style="color:#e74c3c;text-align:center">연결 실패<br><small>' + escapeHtml(e.message) + '</small><br><button onclick="location.reload()" style="margin-top:12px;padding:8px 16px;cursor:pointer">다시 시도</button></div>';
+  }
 </script>
 </body>
 </html>
