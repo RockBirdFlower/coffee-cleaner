@@ -58,6 +58,13 @@
     </div>
 
     <div class="section-header">
+      <span class="section-title">점심 메뉴</span>
+    </div>
+    <div class="lunch-list" id="lunchList">
+      <div class="lunch-card lunch-card-loading">점심 메뉴를 불러오는 중...</div>
+    </div>
+
+    <div class="section-header">
       <span class="section-title">순서</span>
       <button class="btn-edit" id="editBtn" onclick="toggleEdit()">✏️ 순서 편집</button>
     </div>
@@ -119,6 +126,20 @@
   let state = null;
   let isEditMode = false;
   let dragSrcIdx = null;
+  const LUNCH_SOURCES = [
+    {
+      id: 'dtech',
+      name: '디테크 한식뷔페',
+      channelUrl: 'https://pf.kakao.com/_nkwxeG',
+      fetchUrl: 'https://pf.kakao.com/_nkwxeG'
+    },
+    {
+      id: 'cookingtree',
+      name: '쿠킹트리 한식뷔페',
+      channelUrl: 'https://pf.kakao.com/_eAqyxj',
+      fetchUrl: 'https://pf.kakao.com/_eAqyxj'
+    }
+  ];
 
   // Touch drag state
   let touchSrcIdx = null;
@@ -152,6 +173,87 @@
     const div = document.createElement('div');
     div.textContent = str;
     return div.innerHTML;
+  }
+
+  function parseProfileCard(html, source) {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    const imageUrl = doc.querySelector('meta[property="og:image"]')?.getAttribute('content') || '';
+    const title = doc.querySelector('meta[property="og:title"]')?.getAttribute('content') || source.name;
+    const description = doc.querySelector('meta[property="og:description"]')?.getAttribute('content') || '채널 프로필 사진';
+    if (!imageUrl) return null;
+    return {
+      title,
+      description,
+      imageUrl,
+      dateText: '채널 프로필 사진',
+      linkUrl: source.channelUrl
+    };
+  }
+
+  function renderLunchMenus(items) {
+    const lunchList = document.getElementById('lunchList');
+    lunchList.innerHTML = items.map((item) => {
+      if (item.error) {
+        return `
+          <div class="lunch-card lunch-card-empty">
+            <div class="lunch-meta">
+              <div>
+                <div class="lunch-name">${escapeHtml(item.name)}</div>
+                <div class="lunch-sub">${escapeHtml(item.message)}</div>
+              </div>
+              <a class="lunch-link" href="${item.channelUrl}" target="_blank" rel="noreferrer">채널 보기</a>
+            </div>
+          </div>
+        `;
+      }
+
+      return `
+        <article class="lunch-card">
+          <div class="lunch-meta">
+            <div>
+              <div class="lunch-name">${escapeHtml(item.name)}</div>
+              <div class="lunch-sub">${escapeHtml(item.dateText || '최신 메뉴 이미지')}</div>
+            </div>
+            <a class="lunch-link" href="${item.linkUrl}" target="_blank" rel="noreferrer">원본 보기</a>
+          </div>
+          <a class="lunch-image-link" href="${item.linkUrl}" target="_blank" rel="noreferrer">
+            <img class="lunch-image" src="${item.imageUrl}" alt="${escapeHtml(item.name)} 점심 메뉴">
+          </a>
+          <div class="lunch-title">${escapeHtml(item.description || item.title || '프로필 이미지')}</div>
+        </article>
+      `;
+    }).join('');
+  }
+
+  async function loadLunchMenus() {
+    const results = await Promise.all(LUNCH_SOURCES.map(async (source) => {
+      try {
+        const res = await fetch(source.fetchUrl);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const html = await res.text();
+        const parsed = parseProfileCard(html, source);
+        if (!parsed) {
+          return {
+            ...source,
+            error: true,
+            message: '표시할 프로필 이미지가 아직 없어요.'
+          };
+        }
+        return {
+          ...source,
+          ...parsed
+        };
+      } catch (error) {
+        return {
+          ...source,
+          error: true,
+          message: '메뉴를 불러오지 못했습니다.'
+        };
+      }
+    }));
+
+    renderLunchMenus(results);
   }
 
   function render(s) {
@@ -414,6 +516,7 @@
 
   // ── Init ──
   try {
+    loadLunchMenus();
     await initState();
     document.getElementById('loading').style.display = 'none';
     document.getElementById('app').style.display = 'block';
