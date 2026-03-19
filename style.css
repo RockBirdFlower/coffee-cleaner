@@ -472,71 +472,69 @@
     border: 2px dashed var(--accent);
   }
 
-  .lunch-list {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 14px;
-    margin-bottom: 20px;
-    margin-left: -40px;
-    margin-right: -40px;
-  }
-
-  .lunch-card {
-    background: var(--surface);
+  .btn-lunch {
+    width: 100%;
+    margin-bottom: 16px;
+    background: var(--surface2);
+    color: var(--accent2);
     border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 16px;
-    overflow: hidden;
+    font-size: 15px;
   }
 
-  .lunch-card-loading,
-  .lunch-card-empty {
-    color: var(--text-muted);
-    text-align: center;
-    padding: 22px 16px;
-  }
+  .btn-lunch:hover { border-color: var(--accent); background: rgba(200,162,106,0.1); }
+  .btn-lunch:disabled { opacity: 0.5; cursor: not-allowed; }
 
-  .lunch-meta {
-    display: flex;
+  /* Lunch modal */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 9999;
     align-items: flex-start;
-    justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 12px;
+    justify-content: center;
+    padding: 40px 20px;
+    overflow-y: auto;
   }
 
-  .lunch-name {
+  .modal-overlay.active {
+    display: flex;
+  }
+
+  .lunch-modal-content {
+    display: flex;
+    gap: 20px;
+    max-width: 900px;
+    width: 100%;
+  }
+
+  .lunch-modal-item {
+    flex: 1;
+    text-align: center;
+  }
+
+  .lunch-modal-item .lunch-name {
     font-size: 16px;
     font-weight: 700;
     color: var(--accent2);
+    margin-bottom: 12px;
   }
 
-  .lunch-sub {
+  .lunch-modal-item .lunch-sub {
     margin-top: 4px;
+    margin-bottom: 12px;
     font-family: 'Space Mono', monospace;
     font-size: 11px;
     color: var(--text-muted);
   }
 
-  .lunch-image {
-    display: block;
+  .lunch-modal-image {
     width: 100%;
     border-radius: 12px;
-    border: 1px solid rgba(200,162,106,0.18);
-    background: var(--surface2);
   }
 
-
   @media (max-width: 640px) {
-    .lunch-list {
-      margin-left: -10px;
-      margin-right: -10px;
-    }
-
-    .lunch-card {
-      padding: 10px;
-    }
-
-    .lunch-name {
-      font-size: 13px;
+    .lunch-modal-content {
+      flex-direction: column;
     }
   }

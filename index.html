@@ -33,11 +33,20 @@
     </div>
     <div class="queue-list" id="weeklyList"></div>
 
-    <div class="section-header" style="margin-top:20px">
-      <span class="section-title">&#51216;&#49900; &#47700;&#45684;</span>
+    <button class="btn btn-lotto" onclick="generateLotto()">&#127921; &#47196;&#46608; &#48264;&#54840; &#46384;&#44592;</button>
+    <div id="lottoResult" class="lotto-result" style="display:none">
+      <div class="lotto-label">&#51060;&#48264; &#51452; &#54665;&#50868;&#51032; &#48264;&#54840;</div>
+      <div class="lotto-numbers" id="lottoNumbers"></div>
+      <div class="lotto-bonus">
+        <span class="lotto-plus">+</span>
+        <span class="lotto-bonus-ball" id="lottoBonus"></span>
+      </div>
     </div>
-    <div class="lunch-list" id="lunchList">
-      <div class="lunch-card lunch-card-loading">&#51216;&#49900; &#47700;&#45684; &#51060;&#48120;&#51648;&#47484; &#48520;&#47084;&#50724;&#45716; &#51473;...</div>
+
+    <button class="btn btn-lunch" id="lunchBtn" onclick="showLunchModal()" disabled>&#127860; &#51216;&#49900; &#47700;&#45684; &#48372;&#44592;</button>
+
+    <div class="modal-overlay" id="lunchModal" onclick="if(event.target===this)closeLunchModal()">
+      <div class="lunch-modal-content" id="lunchModalContent"></div>
     </div>
   </div>
 </div>
@@ -128,38 +137,61 @@
     }).join('');
   }
 
-  function renderLunchMenus(items) {
-    var lunchList = document.getElementById('lunchList');
+  var lunchItems = [];
 
-    if (!Array.isArray(items) || items.length === 0) {
-      lunchList.innerHTML = '<div class="lunch-card lunch-card-empty">\uD45C\uC2DC\uD560 \uBA54\uB274 \uC774\uBBF8\uC9C0\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.</div>';
-      return;
+  function onLunchLoaded(items) {
+    lunchItems = items;
+    var btn = document.getElementById('lunchBtn');
+    btn.disabled = false;
+  }
+
+  function showLunchModal() {
+    var content = document.getElementById('lunchModalContent');
+    content.innerHTML = lunchItems.map(function(item) {
+      if (item.error) {
+        return '<div class="lunch-modal-item">' +
+          '<div class="lunch-name">' + escapeHtml(item.name) + '</div>' +
+          '<div class="lunch-sub">' + escapeHtml(item.message) + '</div>' +
+        '</div>';
+      }
+      return '<div class="lunch-modal-item">' +
+        '<div class="lunch-name">' + escapeHtml(item.name) + '</div>' +
+        '<img class="lunch-modal-image" src="' + escapeHtml(item.imageUrl) + '" alt="' + escapeHtml(item.name) + '">' +
+      '</div>';
+    }).join('');
+    document.getElementById('lunchModal').classList.add('active');
+  }
+
+  function closeLunchModal() {
+    document.getElementById('lunchModal').classList.remove('active');
+  }
+
+  function generateLotto() {
+    var nums = [];
+    while (nums.length < 6) {
+      var n = Math.floor(Math.random() * 45) + 1;
+      if (nums.indexOf(n) === -1) nums.push(n);
+    }
+    nums.sort(function(a, b) { return a - b; });
+
+    var bonus;
+    do { bonus = Math.floor(Math.random() * 45) + 1; } while (nums.indexOf(bonus) !== -1);
+
+    function ballColor(n) {
+      if (n <= 10) return 'ball-yellow';
+      if (n <= 20) return 'ball-blue';
+      if (n <= 30) return 'ball-red';
+      if (n <= 40) return 'ball-gray';
+      return 'ball-green';
     }
 
-    lunchList.innerHTML = items.map(function(item) {
-      if (item.error) {
-        return '' +
-          '<div class="lunch-card lunch-card-empty">' +
-            '<div class="lunch-meta">' +
-              '<div>' +
-                '<div class="lunch-name">' + escapeHtml(item.name) + '</div>' +
-                '<div class="lunch-sub">' + escapeHtml(item.message) + '</div>' +
-              '</div>' +
-            '</div>' +
-          '</div>';
-      }
-
-      return '' +
-        '<article class="lunch-card">' +
-          '<div class="lunch-meta">' +
-            '<div>' +
-              '<div class="lunch-name">' + escapeHtml(item.name) + '</div>' +
-              '<div class="lunch-sub">' + escapeHtml(item.dateText || '\uCD5C\uC2E0 \uBA54\uB274 \uC774\uBBF8\uC9C0') + '</div>' +
-            '</div>' +
-          '</div>' +
-          '<img class="lunch-image" src="' + escapeHtml(item.imageUrl) + '" alt="' + escapeHtml(item.name) + ' \uC810\uC2EC \uBA54\uB274">' +
-        '</article>';
+    var numbersEl = document.getElementById('lottoNumbers');
+    numbersEl.innerHTML = nums.map(function(n) {
+      return '<span class="lotto-ball ' + ballColor(n) + '">' + n + '</span>';
     }).join('');
+    document.getElementById('lottoBonus').className = 'lotto-bonus-ball ' + ballColor(bonus);
+    document.getElementById('lottoBonus').textContent = bonus;
+    document.getElementById('lottoResult').style.display = 'block';
   }
 
   async function loadLunchMenus() {
@@ -168,9 +200,9 @@
       if (!response.ok) throw new Error('HTTP ' + response.status);
 
       var payload = await response.json();
-      renderLunchMenus(payload.items || []);
+      onLunchLoaded(payload.items || []);
     } catch (error) {
-      renderLunchMenus([
+      onLunchLoaded([
         {
           name: '\uC810\uC2EC \uBA54\uB274',
           error: true,
