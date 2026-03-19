@@ -32,8 +32,6 @@
   </div>
 
   <div id="app" style="display:none">
-    <div class="notice show">&#51452;&#47568;&#51008; &#52397;&#49548; &#45817;&#48264;&#51060; &#50630;&#49845;&#45768;&#45796;. &#50900;&#50836;&#51068;&#48512;&#53552; &#44552;&#50836;&#51068;&#44620;&#51648;&#47564; &#44256;&#51221; &#50868;&#50689;&#54633;&#45768;&#45796;.</div>
-
     <div class="current-card">
       <div class="current-label"><span class="dot"></span>&#50724;&#45720; &#45817;&#48264;</div>
       <div class="current-name" id="currentName">-</div>
@@ -185,7 +183,7 @@
                 '<div class="lunch-name">' + escapeHtml(item.name) + '</div>' +
                 '<div class="lunch-sub">' + escapeHtml(item.message) + '</div>' +
               '</div>' +
-              '<a class="lunch-link" href="' + escapeHtml(item.channelUrl) + '" target="_blank" rel="noreferrer">\uCC44\uB110 \uBCF4\uAE30</a>' +
+              '
             '</div>' +
           '</div>';
       }
@@ -197,12 +195,8 @@
               '<div class="lunch-name">' + escapeHtml(item.name) + '</div>' +
               '<div class="lunch-sub">' + escapeHtml(item.dateText || '\uCD5C\uC2E0 \uBA54\uB274 \uC774\uBBF8\uC9C0') + '</div>' +
             '</div>' +
-            '<a class="lunch-link" href="' + escapeHtml(item.linkUrl) + '" target="_blank" rel="noreferrer">\uC6D0\uBCF8 \uBCF4\uAE30</a>' +
           '</div>' +
-          '<a class="lunch-image-link" href="' + escapeHtml(item.linkUrl) + '" target="_blank" rel="noreferrer">' +
-            '<img class="lunch-image" src="' + escapeHtml(item.imageUrl) + '" alt="' + escapeHtml(item.name) + ' \uC810\uC2EC \uBA54\uB274">' +
-          '</a>' +
-          '<div class="lunch-title">' + escapeHtml(item.description || item.title || '\uD504\uB85C\uD544 \uC774\uBBF8\uC9C0') + '</div>' +
+          '<img class="lunch-image" src="' + escapeHtml(item.imageUrl) + '" alt="' + escapeHtml(item.name) + ' \uC810\uC2EC \uBA54\uB274">' +
         '</article>';
     }).join('');
   }
