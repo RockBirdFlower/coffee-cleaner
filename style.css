@@ -477,6 +477,8 @@
     grid-template-columns: 1fr 1fr;
     gap: 14px;
     margin-bottom: 20px;
+    margin-left: -40px;
+    margin-right: -40px;
   }
 
   .lunch-card {
@@ -526,14 +528,15 @@
 
   @media (max-width: 640px) {
     .lunch-list {
-      grid-template-columns: 1fr 1fr;
+      margin-left: -10px;
+      margin-right: -10px;
     }
 
     .lunch-card {
-      padding: 12px;
+      padding: 10px;
     }
 
     .lunch-name {
-      font-size: 14px;
+      font-size: 13px;
     }
   }
