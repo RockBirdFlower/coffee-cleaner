@@ -3,542 +3,243 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>☕ 커피머신 청소 당번</title>
+<title>&#52964;&#54588;&#47672;&#49888; &#52397;&#49548; &#45817;&#48264;</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <div class="container">
   <header>
-    <div class="logo">☕</div>
-    <h1>커피머신 청소</h1>
-    <p class="subtitle">CLEANING ROTATION SYSTEM</p>
+    <div class="logo">&#9749;</div>
+    <h1>&#52964;&#54588;&#47672;&#49888; &#52397;&#49548;</h1>
+    <p class="subtitle">WEEKDAY ASSIGNMENT</p>
   </header>
 
-  
-<div class="pw-overlay" id="pwOverlay">
-  <div class="pw-box">
-    <div class="pw-logo">☕</div>
-    <div class="pw-title">커피머신 청소</div>
-    <div class="pw-sub">CLEANING ROTATION SYSTEM</div>
-    <input class="pw-input" type="password" id="pwInput" placeholder="비밀번호 입력" onkeydown="if(event.key==='Enter')checkPw()" />
-    <button class="pw-btn" onclick="checkPw()">입장</button>
-    <div class="pw-error" id="pwError">비밀번호가 틀렸습니다</div>
+  <div class="pw-overlay" id="pwOverlay">
+    <div class="pw-box">
+      <div class="pw-logo">&#9749;</div>
+      <div class="pw-title">&#52964;&#54588;&#47672;&#49888; &#52397;&#49548;</div>
+      <div class="pw-sub">WEEKDAY ASSIGNMENT</div>
+      <input class="pw-input" type="password" id="pwInput" placeholder="&#48708;&#48128;&#48264;&#54840; &#51077;&#47141;" onkeydown="if(event.key==='Enter')checkPw()">
+      <button class="pw-btn" onclick="checkPw()">&#51077;&#51109;</button>
+      <div class="pw-error" id="pwError">&#48708;&#48128;&#48264;&#54840;&#44032; &#50732;&#48148;&#47476;&#51648; &#50506;&#49845;&#45768;&#45796;</div>
+    </div>
   </div>
-</div>
 
-<div id="loading" class="loading">
+  <div id="loading" class="loading">
     <div class="spinner"></div>
     LOADING...
   </div>
 
   <div id="app" style="display:none">
-    <div id="notice" class="notice"></div>
+    <div class="notice show">&#51452;&#47568;&#51008; &#52397;&#49548; &#45817;&#48264;&#51060; &#50630;&#49845;&#45768;&#45796;. &#50900;&#50836;&#51068;&#48512;&#53552; &#44552;&#50836;&#51068;&#44620;&#51648;&#47564; &#44256;&#51221; &#50868;&#50689;&#54633;&#45768;&#45796;.</div>
 
     <div class="current-card">
-      <div class="current-label"><span class="dot"></span>이번 당번</div>
-      <div class="current-name" id="currentName">—</div>
+      <div class="current-label"><span class="dot"></span>&#50724;&#45720; &#45817;&#48264;</div>
+      <div class="current-name" id="currentName">-</div>
       <div class="current-date" id="currentDate"></div>
       <div id="currentStatus"></div>
     </div>
 
-    <div class="actions">
-      <button class="btn btn-done" onclick="markDone()">✅ 청소 완료</button>
-      <button class="btn btn-skip" onclick="markSkip()">⏭ 건너뜀</button>
-    </div>
-
-    <button class="btn btn-lotto" onclick="generateLotto()">🎱 로또 번호 뽑기</button>
-    <div id="lottoResult" class="lotto-result" style="display:none">
-      <div class="lotto-label">이번 주 행운의 번호</div>
-      <div class="lotto-numbers" id="lottoNumbers"></div>
-      <div class="lotto-bonus">
-        <span class="lotto-plus">+</span>
-        <span class="lotto-bonus-ball" id="lottoBonus"></span>
-      </div>
-    </div>
-
     <div class="section-header">
-      <span class="section-title">점심 메뉴</span>
+      <span class="section-title">&#51452;&#44036; &#44256;&#51221;&#54364;</span>
+    </div>
+    <div class="queue-list" id="weeklyList"></div>
+
+    <div class="section-header" style="margin-top:20px">
+      <span class="section-title">&#51216;&#49900; &#47700;&#45684;</span>
     </div>
     <div class="lunch-list" id="lunchList">
-      <div class="lunch-card lunch-card-loading">점심 메뉴를 불러오는 중...</div>
+      <div class="lunch-card lunch-card-loading">&#51216;&#49900; &#47700;&#45684; &#51060;&#48120;&#51648;&#47484; &#48520;&#47084;&#50724;&#45716; &#51473;...</div>
     </div>
-
-    <div class="section-header">
-      <span class="section-title">순서</span>
-      <button class="btn-edit" id="editBtn" onclick="toggleEdit()">✏️ 순서 편집</button>
-    </div>
-    <div class="queue-list" id="queueList"></div>
-    <div class="edit-hint" id="editHint">☝️ 드래그해서 순서를 변경하세요</div>
-
-    <div class="section-header" style="margin-top:12px">
-      <span class="section-title">히스토리</span>
-    </div>
-    <div class="history-list" id="historyList"></div>
   </div>
 </div>
 
 <script>
-  // ── Password (해시 비교 - 원문 노출 방지) ──
   var CORRECT_PW_HASH = '%%APP_PASSWORD_HASH%%';
+
+  var WEEK_SCHEDULE = [
+    { dayIndex: 1, dayLabel: '\uC6D4\uC694\uC77C', shortLabel: 'MON', name: '\uAC15\uAD81\uD604' },
+    { dayIndex: 2, dayLabel: '\uD654\uC694\uC77C', shortLabel: 'TUE', name: '\uAE40\uC815\uD0DC' },
+    { dayIndex: 3, dayLabel: '\uC218\uC694\uC77C', shortLabel: 'WED', name: '\uC190\uD615\uC218' },
+    { dayIndex: 4, dayLabel: '\uBAA9\uC694\uC77C', shortLabel: 'THU', name: '\uC720\uC9C0\uD5CC' },
+    { dayIndex: 5, dayLabel: '\uAE08\uC694\uC77C', shortLabel: 'FRI', name: '\uC774\uC6A9\uD601' }
+  ];
+
+  function escapeHtml(str) {
+    var div = document.createElement('div');
+    div.textContent = str || '';
+    return div.innerHTML;
+  }
 
   async function checkPw() {
     var input = document.getElementById('pwInput');
     var errEl = document.getElementById('pwError');
     var data = new TextEncoder().encode(input.value);
     var hashBuf = await crypto.subtle.digest('SHA-256', data);
-    var hashHex = Array.from(new Uint8Array(hashBuf)).map(function(b) { return b.toString(16).padStart(2, '0'); }).join('');
+    var hashHex = Array.from(new Uint8Array(hashBuf)).map(function(b) {
+      return b.toString(16).padStart(2, '0');
+    }).join('');
+
     if (hashHex === CORRECT_PW_HASH) {
       document.getElementById('pwOverlay').style.display = 'none';
       sessionStorage.setItem('auth', '1');
-    } else {
-      input.classList.add('error');
-      errEl.style.display = 'block';
-      setTimeout(function() { input.classList.remove('error'); }, 400);
-      input.value = '';
+      return;
     }
+
+    input.classList.add('error');
+    errEl.style.display = 'block';
+    setTimeout(function() { input.classList.remove('error'); }, 400);
+    input.value = '';
   }
 
   if (sessionStorage.getItem('auth') === '1') {
     document.getElementById('pwOverlay').style.display = 'none';
   }
-</script>
 
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getDatabase, ref, onValue, set, get, runTransaction } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+  function getSeoulWeekdayIndex(date) {
+    var weekday = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Seoul',
+      weekday: 'short'
+    }).format(date);
 
-  const firebaseConfig = {
-    apiKey: "%%FIREBASE_API_KEY%%",
-    authDomain: "%%FIREBASE_AUTH_DOMAIN%%",
-    databaseURL: "%%FIREBASE_DATABASE_URL%%",
-    projectId: "%%FIREBASE_PROJECT_ID%%",
-    storageBucket: "%%FIREBASE_STORAGE_BUCKET%%",
-    messagingSenderId: "%%FIREBASE_MESSAGING_SENDER_ID%%",
-    appId: "%%FIREBASE_APP_ID%%"
-  };
-
-  const MEMBERS = ["강궁현","김정태","손형수","유지헌","이용혁"];
-  const app = initializeApp(firebaseConfig);
-  const db = getDatabase(app);
-  const stateRef = ref(db, 'cleaningState');
-
-  let state = null;
-  let isEditMode = false;
-  let dragSrcIdx = null;
-  const LUNCH_SOURCES = [
-    {
-      id: 'dtech',
-      name: '디테크 한식뷔페',
-      channelUrl: 'https://pf.kakao.com/_nkwxeG',
-      fetchUrl: 'https://pf.kakao.com/_nkwxeG'
-    },
-    {
-      id: 'cookingtree',
-      name: '쿠킹트리 한식뷔페',
-      channelUrl: 'https://pf.kakao.com/_eAqyxj',
-      fetchUrl: 'https://pf.kakao.com/_eAqyxj'
-    }
-  ];
-
-  // Touch drag state
-  let touchSrcIdx = null;
-  let touchClone = null;
-  let touchOffsetY = 0;
-
-  async function initState() {
-    const snap = await get(stateRef);
-    const existing = snap.exists() ? snap.val() : null;
-    const existingNames = existing?.queue?.map(q => q.name).sort().join(',') || '';
-    const newNames = [...MEMBERS].sort().join(',');
-
-    if (!existing || existingNames !== newNames) {
-      await set(stateRef, {
-        currentIndex: 0,
-        queue: MEMBERS.map(name => ({ name, skipped: false })),
-        history: [],
-        lastUpdated: new Date().toISOString(),
-        notice: ""
-      });
-    }
+    var map = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+    return map[weekday];
   }
 
-  function formatDate(iso) {
-    if (!iso) return '';
-    const d = new Date(iso);
-    return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  function formatSeoulNow(date) {
+    return new Intl.DateTimeFormat('ko-KR', {
+      timeZone: 'Asia/Seoul',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      weekday: 'long'
+    }).format(date);
   }
 
-  function escapeHtml(str) {
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
-  }
+  function getTodayAssignment() {
+    var today = new Date();
+    var weekdayIndex = getSeoulWeekdayIndex(today);
+    var assignment = WEEK_SCHEDULE.find(function(item) {
+      return item.dayIndex === weekdayIndex;
+    });
 
-  function normalizeKakaoImageUrl(url) {
-    if (!url) return '';
-    return url
-      .replace(/^http:\/\//i, 'https://')
-      .replace(/\/img_m\.jpg(\?.*)?$/i, '/img_xl.jpg');
-  }
-
-  function parseProfileCard(html, source) {
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, 'text/html');
-    const rawImageUrl =
-      doc.querySelector('meta[property="og:image"]')?.getAttribute('content') ||
-      doc.querySelector('meta[property="twitter:image"]')?.getAttribute('content') ||
-      '';
-    const imageUrl = normalizeKakaoImageUrl(rawImageUrl);
-    const title = doc.querySelector('meta[property="og:title"]')?.getAttribute('content') || source.name;
-    const description = doc.querySelector('meta[property="og:description"]')?.getAttribute('content') || '채널 프로필 사진';
-    if (!imageUrl) return null;
     return {
-      title,
-      description,
-      imageUrl,
-      dateText: '채널 프로필 사진',
-      linkUrl: source.channelUrl
+      today: today,
+      weekdayIndex: weekdayIndex,
+      assignment: assignment || null
     };
   }
 
+  function renderCurrentCard() {
+    var currentName = document.getElementById('currentName');
+    var currentDate = document.getElementById('currentDate');
+    var currentStatus = document.getElementById('currentStatus');
+    var result = getTodayAssignment();
+
+    currentDate.textContent = formatSeoulNow(result.today) + ' \uAE30\uC900';
+
+    if (!result.assignment) {
+      currentName.textContent = '\uC8FC\uB9D0 \uD734\uBB34';
+      currentStatus.innerHTML = '<span class="status-badge skipped">\uD1A0\uC694\uC77C\uACFC \uC77C\uC694\uC77C\uC740 \uCCAD\uC18C \uC5C6\uC74C</span>';
+      return;
+    }
+
+    currentName.textContent = result.assignment.name;
+    currentStatus.innerHTML = '<span class="status-badge pending">' + result.assignment.dayLabel + ' \uB2F4\uB2F9\uC790</span>';
+  }
+
+  function renderWeeklyList() {
+    var result = getTodayAssignment();
+    var weeklyList = document.getElementById('weeklyList');
+
+    weeklyList.innerHTML = WEEK_SCHEDULE.map(function(item, index) {
+      var isToday = item.dayIndex === result.weekdayIndex;
+      var tagClass = isToday ? 'queue-tag tag-current' : 'queue-tag';
+      var tagText = isToday ? 'TODAY' : item.shortLabel;
+
+      return (
+        '<div class="queue-item' + (isToday ? ' is-current' : '') + '">' +
+          '<span class="queue-num">' + String(index + 1).padStart(2, '0') + '</span>' +
+          '<span class="queue-name">' + escapeHtml(item.dayLabel + ' · ' + item.name) + '</span>' +
+          '<span class="' + tagClass + '">' + escapeHtml(tagText) + '</span>' +
+        '</div>'
+      );
+    }).join('');
+  }
+
   function renderLunchMenus(items) {
-    const lunchList = document.getElementById('lunchList');
-    lunchList.innerHTML = items.map((item) => {
+    var lunchList = document.getElementById('lunchList');
+
+    if (!Array.isArray(items) || items.length === 0) {
+      lunchList.innerHTML = '<div class="lunch-card lunch-card-empty">\uD45C\uC2DC\uD560 \uBA54\uB274 \uC774\uBBF8\uC9C0\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.</div>';
+      return;
+    }
+
+    lunchList.innerHTML = items.map(function(item) {
       if (item.error) {
-        return `
-          <div class="lunch-card lunch-card-empty">
-            <div class="lunch-meta">
-              <div>
-                <div class="lunch-name">${escapeHtml(item.name)}</div>
-                <div class="lunch-sub">${escapeHtml(item.message)}</div>
-              </div>
-              <a class="lunch-link" href="${item.channelUrl}" target="_blank" rel="noreferrer">채널 보기</a>
-            </div>
-          </div>
-        `;
+        return '' +
+          '<div class="lunch-card lunch-card-empty">' +
+            '<div class="lunch-meta">' +
+              '<div>' +
+                '<div class="lunch-name">' + escapeHtml(item.name) + '</div>' +
+                '<div class="lunch-sub">' + escapeHtml(item.message) + '</div>' +
+              '</div>' +
+              '<a class="lunch-link" href="' + escapeHtml(item.channelUrl) + '" target="_blank" rel="noreferrer">\uCC44\uB110 \uBCF4\uAE30</a>' +
+            '</div>' +
+          '</div>';
       }
 
-      return `
-        <article class="lunch-card">
-          <div class="lunch-meta">
-            <div>
-              <div class="lunch-name">${escapeHtml(item.name)}</div>
-              <div class="lunch-sub">${escapeHtml(item.dateText || '최신 메뉴 이미지')}</div>
-            </div>
-            <a class="lunch-link" href="${item.linkUrl}" target="_blank" rel="noreferrer">원본 보기</a>
-          </div>
-          <a class="lunch-image-link" href="${item.linkUrl}" target="_blank" rel="noreferrer">
-            <img class="lunch-image" src="${item.imageUrl}" alt="${escapeHtml(item.name)} 점심 메뉴">
-          </a>
-          <div class="lunch-title">${escapeHtml(item.description || item.title || '프로필 이미지')}</div>
-        </article>
-      `;
+      return '' +
+        '<article class="lunch-card">' +
+          '<div class="lunch-meta">' +
+            '<div>' +
+              '<div class="lunch-name">' + escapeHtml(item.name) + '</div>' +
+              '<div class="lunch-sub">' + escapeHtml(item.dateText || '\uCD5C\uC2E0 \uBA54\uB274 \uC774\uBBF8\uC9C0') + '</div>' +
+            '</div>' +
+            '<a class="lunch-link" href="' + escapeHtml(item.linkUrl) + '" target="_blank" rel="noreferrer">\uC6D0\uBCF8 \uBCF4\uAE30</a>' +
+          '</div>' +
+          '<a class="lunch-image-link" href="' + escapeHtml(item.linkUrl) + '" target="_blank" rel="noreferrer">' +
+            '<img class="lunch-image" src="' + escapeHtml(item.imageUrl) + '" alt="' + escapeHtml(item.name) + ' \uC810\uC2EC \uBA54\uB274">' +
+          '</a>' +
+          '<div class="lunch-title">' + escapeHtml(item.description || item.title || '\uD504\uB85C\uD544 \uC774\uBBF8\uC9C0') + '</div>' +
+        '</article>';
     }).join('');
   }
 
   async function loadLunchMenus() {
-    const results = await Promise.all(LUNCH_SOURCES.map(async (source) => {
-      try {
-        const res = await fetch(source.fetchUrl, { cache: 'no-store' });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const html = await res.text();
-        const parsed = parseProfileCard(html, source);
-        if (!parsed) {
-          return {
-            ...source,
-            error: true,
-            message: '표시할 프로필 이미지가 아직 없어요.'
-          };
-        }
-        return {
-          ...source,
-          ...parsed
-        };
-      } catch (error) {
-        return {
-          ...source,
+    try {
+      var response = await fetch('/api/lunch', { cache: 'no-store' });
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+
+      var payload = await response.json();
+      renderLunchMenus(payload.items || []);
+    } catch (error) {
+      renderLunchMenus([
+        {
+          name: '\uC810\uC2EC \uBA54\uB274',
           error: true,
-          message: '메뉴를 불러오지 못했습니다.'
-        };
-      }
-    }));
-
-    renderLunchMenus(results);
-  }
-
-  function render(s) {
-    state = s;
-    if (!s.queue || s.queue.length === 0) return;
-    if (s.currentIndex < 0 || s.currentIndex >= s.queue.length) s.currentIndex = 0;
-    const current = s.queue[s.currentIndex];
-
-    document.getElementById('currentName').textContent = current?.name || '—';
-    document.getElementById('currentDate').textContent = '마지막 업데이트: ' + formatDate(s.lastUpdated);
-
-    const statusEl = document.getElementById('currentStatus');
-    statusEl.innerHTML = current?.skipped
-      ? '<span class="status-badge skipped">⚠️ 건너뜀 상태</span>'
-      : '<span class="status-badge pending">⏳ 청소 대기 중</span>';
-
-    const noticeEl = document.getElementById('notice');
-    if (s.notice) {
-      noticeEl.textContent = '📢 ' + s.notice;
-      noticeEl.classList.add('show');
-    } else {
-      noticeEl.classList.remove('show');
+          channelUrl: '#',
+          message: '\uBA54\uB274 \uC774\uBBF8\uC9C0\uB97C \uBD88\uB7EC\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.'
+        }
+      ]);
     }
-
-    renderQueue(s);
-    renderHistory(s);
   }
 
-  function renderQueue(s) {
-    const queueEl = document.getElementById('queueList');
-    queueEl.className = 'queue-list' + (isEditMode ? ' edit-mode' : '');
-    queueEl.innerHTML = '';
-
-    s.queue.forEach((item, i) => {
-      const isCurrent = i === s.currentIndex;
-      const div = document.createElement('div');
-      div.className = `queue-item${isCurrent ? ' is-current' : ''}`;
-      div.draggable = isEditMode;
-      div.dataset.idx = i;
-
-      div.innerHTML = `
-        <span class="drag-handle" style="cursor:${isEditMode ? 'grab' : 'default'}">⠿</span>
-        <span class="queue-num">${String(i+1).padStart(2,'0')}</span>
-        <span class="queue-name">${escapeHtml(item.name)}</span>
-        ${isCurrent ? '<span class="queue-tag tag-current">당번</span>' : ''}
-        ${item.skipped && !isCurrent ? '<span class="queue-tag tag-skipped">건너뜀</span>' : ''}
-        ${isEditMode && !isCurrent ? `<button class="btn-set-current" onclick="setCurrent(${i})">당번 지정</button>` : ''}
-      `;
-
-      if (isEditMode) {
-        div.addEventListener('dragstart', onDragStart);
-        div.addEventListener('dragover', onDragOver);
-        div.addEventListener('dragleave', onDragLeave);
-        div.addEventListener('drop', onDrop);
-        div.addEventListener('dragend', onDragEnd);
-        div.addEventListener('touchstart', onTouchStart, { passive: true });
-        div.addEventListener('touchmove', onTouchMove, { passive: false });
-        div.addEventListener('touchend', onTouchEnd);
-      }
-
-      queueEl.appendChild(div);
-    });
-
-    const hint = document.getElementById('editHint');
-    hint.style.display = isEditMode ? 'block' : 'none';
-  }
-
-  function renderHistory(s) {
-    const histEl = document.getElementById('historyList');
-    if (!s.history || s.history.length === 0) {
-      histEl.innerHTML = '<div class="empty-history">아직 기록이 없어요</div>';
-      return;
-    }
-    histEl.innerHTML = [...s.history].reverse().slice(0, 10).map(h => `
-      <div class="history-item">
-        <span class="history-icon">${h.result === 'done' ? '✅' : '⏭'}</span>
-        <span class="history-name">${escapeHtml(h.name)}</span>
-        <span class="history-result ${h.result === 'done' ? 'result-done' : 'result-skipped'}">${h.result === 'done' ? '완료' : '건너뜀'}</span>
-        <span class="history-date">${formatDate(h.date)}</span>
-      </div>
-    `).join('');
-  }
-
-  // ── Desktop drag ──
-  function onDragStart(e) {
-    dragSrcIdx = parseInt(e.currentTarget.dataset.idx);
-    setTimeout(() => e.currentTarget.classList.add('dragging'), 0);
-    e.dataTransfer.effectAllowed = 'move';
-  }
-
-  function onDragOver(e) {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    e.currentTarget.classList.add('drag-over');
-  }
-
-  function onDragLeave(e) {
-    e.currentTarget.classList.remove('drag-over');
-  }
-
-  async function onDrop(e) {
-    e.preventDefault();
-    const targetIdx = parseInt(e.currentTarget.dataset.idx);
-    document.querySelectorAll('.queue-item').forEach(el => el.classList.remove('drag-over', 'dragging'));
-    if (dragSrcIdx !== null && dragSrcIdx !== targetIdx) await reorder(dragSrcIdx, targetIdx);
-    dragSrcIdx = null;
-  }
-
-  function onDragEnd() {
-    document.querySelectorAll('.queue-item').forEach(el => el.classList.remove('dragging', 'drag-over'));
-    dragSrcIdx = null;
-  }
-
-  // ── Mobile touch drag ──
-  function onTouchStart(e) {
-    touchSrcIdx = parseInt(e.currentTarget.dataset.idx);
-    const touch = e.touches[0];
-    const rect = e.currentTarget.getBoundingClientRect();
-    touchOffsetY = touch.clientY - rect.top;
-
-    touchClone = e.currentTarget.cloneNode(true);
-    Object.assign(touchClone.style, {
-      position: 'fixed',
-      left: rect.left + 'px',
-      top: rect.top + 'px',
-      width: rect.width + 'px',
-      opacity: '0.85',
-      pointerEvents: 'none',
-      zIndex: '9999',
-      background: '#2a2420',
-      borderRadius: '12px',
-      border: '1px solid #c8a26a',
-      boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-      transition: 'none'
-    });
-    document.body.appendChild(touchClone);
-    e.currentTarget.classList.add('dragging');
-  }
-
-  function onTouchMove(e) {
-    e.preventDefault();
-    const touch = e.touches[0];
-    if (touchClone) touchClone.style.top = (touch.clientY - touchOffsetY) + 'px';
-    document.querySelectorAll('.queue-item').forEach(el => el.classList.remove('drag-over'));
-    const el = document.elementFromPoint(touch.clientX, touch.clientY)?.closest('.queue-item');
-    if (el) el.classList.add('drag-over');
-  }
-
-  async function onTouchEnd(e) {
-    const touch = e.changedTouches[0];
-    const el = document.elementFromPoint(touch.clientX, touch.clientY)?.closest('.queue-item');
-    const targetIdx = el ? parseInt(el.dataset.idx) : null;
-    if (touchClone) { touchClone.remove(); touchClone = null; }
-    document.querySelectorAll('.queue-item').forEach(el => el.classList.remove('dragging', 'drag-over'));
-    if (touchSrcIdx !== null && targetIdx !== null && touchSrcIdx !== targetIdx) {
-      await reorder(touchSrcIdx, targetIdx);
-    }
-    touchSrcIdx = null;
-  }
-
-  // ── Reorder logic ──
-  async function reorder(fromIdx, toIdx) {
-    if (!state) return;
-    await runTransaction(stateRef, (s) => {
-      if (!s || !s.queue || fromIdx >= s.queue.length || toIdx >= s.queue.length) return s;
-
-      const currentPersonName = s.queue[s.currentIndex].name;
-      const [moved] = s.queue.splice(fromIdx, 1);
-      s.queue.splice(toIdx, 0, moved);
-      s.currentIndex = s.queue.findIndex(item => item.name === currentPersonName);
-
-      s.lastUpdated = new Date().toISOString();
-      s.notice = `순서가 변경되었습니다.`;
-      return s;
-    });
-  }
-
-  // ── Public actions ──
-  window.toggleEdit = function() {
-    isEditMode = !isEditMode;
-    const btn = document.getElementById('editBtn');
-    btn.textContent = isEditMode ? '✅ 편집 완료' : '✏️ 순서 편집';
-    btn.classList.toggle('active', isEditMode);
-    if (state) renderQueue(state);
-  };
-
-  window.markDone = async function() {
-    if (!state || !state.queue || state.queue.length === 0) return;
-    await runTransaction(stateRef, (s) => {
-      if (!s || !s.queue || s.queue.length === 0) return s;
-      if (s.currentIndex >= s.queue.length) s.currentIndex = 0;
-      const current = s.queue[s.currentIndex];
-      if (!s.history) s.history = [];
-      s.history.push({ name: current.name, result: 'done', date: new Date().toISOString() });
-      s.queue.splice(s.currentIndex, 1);
-      s.queue.push({ name: current.name, skipped: false });
-      if (s.currentIndex >= s.queue.length) s.currentIndex = 0;
-      s.lastUpdated = new Date().toISOString();
-      s.notice = `${current.name}님이 청소를 완료했습니다! 다음 당번: ${s.queue[s.currentIndex].name}`;
-      return s;
-    });
-  };
-
-  window.markSkip = async function() {
-    if (!state || !state.queue || state.queue.length === 0) return;
-    await runTransaction(stateRef, (s) => {
-      if (!s || !s.queue || s.queue.length === 0) return s;
-      if (s.currentIndex >= s.queue.length) s.currentIndex = 0;
-      const current = s.queue[s.currentIndex];
-      if (!s.history) s.history = [];
-      s.history.push({ name: current.name, result: 'skipped', date: new Date().toISOString() });
-      s.queue[s.currentIndex].skipped = true;
-      const skipped = s.queue.splice(s.currentIndex, 1)[0];
-      const insertIdx = Math.min(s.currentIndex + 1, s.queue.length);
-      s.queue.splice(insertIdx, 0, skipped);
-      if (s.currentIndex >= s.queue.length) s.currentIndex = 0;
-      s.lastUpdated = new Date().toISOString();
-      s.notice = `${current.name}님이 건너뜀. 다음 당번: ${s.queue[s.currentIndex].name}`;
-      return s;
-    });
-  };
-
-
-  window.generateLotto = function() {
-    const nums = [];
-    while (nums.length < 7) {
-      const n = Math.floor(Math.random() * 45) + 1;
-      if (!nums.includes(n)) nums.push(n);
-    }
-    const bonus = nums.pop();
-    nums.sort((a, b) => a - b);
-
-    function ballColor(n) {
-      if (n <= 10) return 'ball-yellow';
-      if (n <= 20) return 'ball-blue';
-      if (n <= 30) return 'ball-red';
-      if (n <= 40) return 'ball-gray';
-      return 'ball-green';
-    }
-
-    const numbersEl = document.getElementById('lottoNumbers');
-    numbersEl.innerHTML = nums.map(n =>
-      `<span class="lotto-ball ${ballColor(n)}">${n}</span>`
-    ).join('');
-    document.getElementById('lottoBonus').className = 'lotto-bonus-ball ' + ballColor(bonus);
-    document.getElementById('lottoBonus').textContent = bonus;
-    document.getElementById('lottoResult').style.display = 'block';
-  };
-
-  window.setCurrent = async function(idx) {
-    if (!state || !state.queue || idx < 0 || idx >= state.queue.length) return;
-    await runTransaction(stateRef, (s) => {
-      if (!s || !s.queue || idx >= s.queue.length) return s;
-      s.currentIndex = idx;
-      s.lastUpdated = new Date().toISOString();
-      s.notice = `당번이 ${s.queue[idx].name}님으로 변경되었습니다.`;
-      return s;
-    });
-  };
-
-  // ── Init ──
-  try {
-    loadLunchMenus();
-    await initState();
+  async function init() {
+    renderCurrentCard();
+    renderWeeklyList();
+    await loadLunchMenus();
     document.getElementById('loading').style.display = 'none';
     document.getElementById('app').style.display = 'block';
-
-    onValue(stateRef, (snap) => {
-      if (snap.exists()) render(snap.val());
-    });
-  } catch (e) {
-    document.getElementById('loading').innerHTML =
-      '<div style="color:#e74c3c;text-align:center">연결 실패<br><small>' + escapeHtml(e.message) + '</small><br><button onclick="location.reload()" style="margin-top:12px;padding:8px 16px;cursor:pointer">다시 시도</button></div>';
   }
+
+  init().catch(function(error) {
+    document.getElementById('loading').innerHTML =
+      '<div style="color:#e74c3c;text-align:center">\uCD08\uAE30\uD654 \uC2E4\uD328<br><small>' +
+      escapeHtml(error.message) +
+      '</small></div>';
+  });
 </script>
 </body>
 </html>
