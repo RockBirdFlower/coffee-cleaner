@@ -175,10 +175,21 @@
     return div.innerHTML;
   }
 
+  function normalizeKakaoImageUrl(url) {
+    if (!url) return '';
+    return url
+      .replace(/^http:\/\//i, 'https://')
+      .replace(/\/img_m\.jpg(\?.*)?$/i, '/img_xl.jpg');
+  }
+
   function parseProfileCard(html, source) {
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
-    const imageUrl = doc.querySelector('meta[property="og:image"]')?.getAttribute('content') || '';
+    const rawImageUrl =
+      doc.querySelector('meta[property="og:image"]')?.getAttribute('content') ||
+      doc.querySelector('meta[property="twitter:image"]')?.getAttribute('content') ||
+      '';
+    const imageUrl = normalizeKakaoImageUrl(rawImageUrl);
     const title = doc.querySelector('meta[property="og:title"]')?.getAttribute('content') || source.name;
     const description = doc.querySelector('meta[property="og:description"]')?.getAttribute('content') || '채널 프로필 사진';
     if (!imageUrl) return null;
@@ -229,7 +240,7 @@
   async function loadLunchMenus() {
     const results = await Promise.all(LUNCH_SOURCES.map(async (source) => {
       try {
-        const res = await fetch(source.fetchUrl);
+        const res = await fetch(source.fetchUrl, { cache: 'no-store' });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const html = await res.text();
         const parsed = parseProfileCard(html, source);
