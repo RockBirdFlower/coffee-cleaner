@@ -385,88 +385,6 @@
     border-color: var(--accent);
   }
 
-  /* Password overlay */
-  .pw-overlay {
-    position: fixed;
-    inset: 0;
-    background: var(--bg);
-    z-index: 9999;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    gap: 20px;
-  }
-
-  .pw-box {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 40px 36px;
-    width: 100%;
-    max-width: 360px;
-    text-align: center;
-  }
-
-  .pw-logo { font-size: 40px; margin-bottom: 12px; }
-
-  .pw-title {
-    font-size: 16px;
-    font-weight: 700;
-    color: var(--accent2);
-    letter-spacing: 3px;
-    margin-bottom: 6px;
-  }
-
-  .pw-sub {
-    font-family: 'Space Mono', monospace;
-    font-size: 10px;
-    color: var(--text-muted);
-    letter-spacing: 2px;
-    margin-bottom: 28px;
-  }
-
-  .pw-input {
-    width: 100%;
-    padding: 12px 16px;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    color: var(--text);
-    font-family: 'Space Mono', monospace;
-    font-size: 14px;
-    letter-spacing: 3px;
-    text-align: center;
-    outline: none;
-    margin-bottom: 12px;
-    transition: border-color 0.2s;
-  }
-
-  .pw-input:focus { border-color: var(--accent); }
-  .pw-input.error { border-color: var(--danger); animation: shake 0.3s ease; }
-
-  @keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-6px); }
-    75% { transform: translateX(6px); }
-  }
-
-  .pw-btn {
-    width: 100%;
-    padding: 12px;
-    background: var(--accent);
-    color: var(--bg);
-    border: none;
-    border-radius: 10px;
-    font-family: 'Noto Sans KR', sans-serif;
-    font-size: 14px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: background 0.2s;
-  }
-
-  .pw-btn:hover { background: var(--accent2); }
-
   /* Lotto */
   .btn-lotto {
     width: 100%;
@@ -605,13 +523,6 @@
     background: var(--surface2);
   }
 
-
-  .pw-error {
-    font-size: 12px;
-    color: var(--danger);
-    margin-top: 8px;
-    display: none;
-  }
 
   @media (max-width: 640px) {
     .lunch-list {

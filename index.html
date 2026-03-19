@@ -15,17 +15,6 @@
     <p class="subtitle">WEEKDAY ASSIGNMENT</p>
   </header>
 
-  <div class="pw-overlay" id="pwOverlay">
-    <div class="pw-box">
-      <div class="pw-logo">&#9749;</div>
-      <div class="pw-title">&#52964;&#54588;&#47672;&#49888; &#52397;&#49548;</div>
-      <div class="pw-sub">WEEKDAY ASSIGNMENT</div>
-      <input class="pw-input" type="password" id="pwInput" placeholder="&#48708;&#48128;&#48264;&#54840; &#51077;&#47141;" onkeydown="if(event.key==='Enter')checkPw()">
-      <button class="pw-btn" onclick="checkPw()">&#51077;&#51109;</button>
-      <div class="pw-error" id="pwError">&#48708;&#48128;&#48264;&#54840;&#44032; &#50732;&#48148;&#47476;&#51648; &#50506;&#49845;&#45768;&#45796;</div>
-    </div>
-  </div>
-
   <div id="loading" class="loading">
     <div class="spinner"></div>
     LOADING...
@@ -54,8 +43,6 @@
 </div>
 
 <script>
-  var CORRECT_PW_HASH = '%%APP_PASSWORD_HASH%%';
-
   var WEEK_SCHEDULE = [
     { dayIndex: 1, dayLabel: '\uC6D4\uC694\uC77C', shortLabel: 'MON', name: '\uAC15\uAD81\uD604' },
     { dayIndex: 2, dayLabel: '\uD654\uC694\uC77C', shortLabel: 'TUE', name: '\uAE40\uC815\uD0DC' },
@@ -68,31 +55,6 @@
     var div = document.createElement('div');
     div.textContent = str || '';
     return div.innerHTML;
-  }
-
-  async function checkPw() {
-    var input = document.getElementById('pwInput');
-    var errEl = document.getElementById('pwError');
-    var data = new TextEncoder().encode(input.value);
-    var hashBuf = await crypto.subtle.digest('SHA-256', data);
-    var hashHex = Array.from(new Uint8Array(hashBuf)).map(function(b) {
-      return b.toString(16).padStart(2, '0');
-    }).join('');
-
-    if (hashHex === CORRECT_PW_HASH) {
-      document.getElementById('pwOverlay').style.display = 'none';
-      sessionStorage.setItem('auth', '1');
-      return;
-    }
-
-    input.classList.add('error');
-    errEl.style.display = 'block';
-    setTimeout(function() { input.classList.remove('error'); }, 400);
-    input.value = '';
-  }
-
-  if (sessionStorage.getItem('auth') === '1') {
-    document.getElementById('pwOverlay').style.display = 'none';
   }
 
   function getSeoulWeekdayIndex(date) {
@@ -183,7 +145,6 @@
                 '<div class="lunch-name">' + escapeHtml(item.name) + '</div>' +
                 '<div class="lunch-sub">' + escapeHtml(item.message) + '</div>' +
               '</div>' +
-              '
             '</div>' +
           '</div>';
       }
