@@ -538,3 +538,46 @@
       flex-direction: column;
     }
   }
+
+/* Lunch board at top */
+#lunchBoard {
+  margin-bottom: 24px;
+}
+
+#lunchBoard .lunch-modal-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  text-align: center;
+}
+
+#lunchBoard .lunch-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--accent2);
+  margin-bottom: 12px;
+}
+
+#lunchBoard .lunch-modal-image {
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+#lunchBoard .lunch-modal-image:hover {
+  transform: scale(1.02);
+}
+
+@media (max-width: 640px) {
+  #lunchBoard .lunch-modal-item {
+    padding: 12px;
+  }
+  
+  #lunchBoard .lunch-name {
+    font-size: 14px;
+  }
+}
