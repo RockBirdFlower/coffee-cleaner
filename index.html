@@ -3,230 +3,187 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>&#52964;&#54588;&#47672;&#49888; &#52397;&#49548; &#45817;&#48264;</title>
+<title>커피머신 청소 담당</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <div class="container">
   <header>
-    <div class="logo">&#9749;</div>
-    <h1>&#52964;&#54588;&#47672;&#49888; &#52397;&#49548;</h1>
+    <div class="logo">☕</div>
+    <h1>커피머신 청소</h1>
     <p class="subtitle">WEEKDAY ASSIGNMENT</p>
   </header>
-
   <div id="loading" class="loading">
     <div class="spinner"></div>
     LOADING...
   </div>
-
   <div id="app" style="display:none">
-    <div class="current-card">
-      <div class="current-label"><span class="dot"></span>&#50724;&#45720; &#45817;&#48264;</div>
-      <div class="current-name" id="currentName">-</div>
-      <div class="current-date" id="currentDate"></div>
-      <div id="currentStatus"></div>
-    </div>
-
     <div class="section-header">
-      <span class="section-title">&#51452;&#44036; &#44256;&#51221;&#54364;</span>
+      <span class="section-title">점심 메뉴</span>
+    </div>
+    <div class="actions" id="lunchBoard"></div>
+    <div class="section-header">
+      <span class="section-title">주간 고정표</span>
     </div>
     <div class="queue-list" id="weeklyList"></div>
-
-    <button class="btn btn-lotto" onclick="generateLotto()">&#127921; &#47196;&#46608; &#48264;&#54840; &#48977;&#44592;</button>
+    <button class="btn btn-lotto" onclick="generateLotto()">🎱 로또 번호 뽑기</button>
     <div id="lottoResult" class="lotto-result" style="display:none">
-      <div class="lotto-label">&#51060;&#48264; &#51452; &#54665;&#50868;&#51032; &#48264;&#54840;</div>
+      <div class="lotto-label">이번 주 행운의 번호</div>
       <div class="lotto-numbers" id="lottoNumbers"></div>
       <div class="lotto-bonus">
         <span class="lotto-plus">+</span>
         <span class="lotto-bonus-ball" id="lottoBonus"></span>
       </div>
     </div>
-
-    <button class="btn btn-lunch" id="lunchBtn" onclick="showLunchModal()" disabled>&#127860; &#51216;&#49900; &#47700;&#45684; &#48372;&#44592;</button>
-
-    <div class="modal-overlay" id="lunchModal" onclick="if(event.target===this)closeLunchModal()">
-      <div class="lunch-modal-content" id="lunchModalContent"></div>
-    </div>
   </div>
 </div>
-
 <script>
-  var WEEK_SCHEDULE = [
-    { dayIndex: 1, dayLabel: '\uC6D4\uC694\uC77C', shortLabel: 'MON', name: '\uAC15\uAD81\uD604' },
-    { dayIndex: 2, dayLabel: '\uD654\uC694\uC77C', shortLabel: 'TUE', name: '\uAE40\uC815\uD0DC' },
-    { dayIndex: 3, dayLabel: '\uC218\uC694\uC77C', shortLabel: 'WED', name: '\uC190\uD615\uC218' },
-    { dayIndex: 4, dayLabel: '\uBAA9\uC694\uC77C', shortLabel: 'THU', name: '\uC720\uC9C0\uD5CC' },
-    { dayIndex: 5, dayLabel: '\uAE08\uC694\uC77C', shortLabel: 'FRI', name: '\uC774\uC6A9\uD601' }
-  ];
-
-  function escapeHtml(str) {
-    var div = document.createElement('div');
-    div.textContent = str || '';
-    return div.innerHTML;
+var WEEK_SCHEDULE = [
+  { dayIndex: 1, dayLabel: '월요일', shortLabel: 'MON', name: '강궁현' },
+  { dayIndex: 2, dayLabel: '화요일', shortLabel: 'TUE', name: '김정태' },
+  { dayIndex: 3, dayLabel: '수요일', shortLabel: 'WED', name: '손형수' },
+  { dayIndex: 4, dayLabel: '목요일', shortLabel: 'THU', name: '유지헌' },
+  { dayIndex: 5, dayLabel: '금요일', shortLabel: 'FRI', name: '이용협' }
+];
+function escapeHtml(str) {
+  var div = document.createElement('div');
+  div.textContent = str || '';
+  return div.innerHTML;
+}
+function getSeoulWeekdayIndex(date) {
+  var weekday = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Seoul',
+    weekday: 'short'
+  }).format(date);
+  var map = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  return map[weekday];
+}
+function getSeoulDateKey(date) {
+  var offset = 9 * 60;
+  var kstTime = new Date(date.getTime() + offset * 60000);
+  return kstTime.toISOString().slice(0, 10);
+}
+function checkAndReloadIfStale() {
+  var todayKey = getSeoulDateKey(new Date());
+  var lastVisitKey = localStorage.getItem('lunch-last-visit-date');
+  if (lastVisitKey && lastVisitKey !== todayKey) {
+    localStorage.setItem('lunch-last-visit-date', todayKey);
+    window.location.href = window.location.pathname + '?refresh=' + Date.now();
+    return true;
   }
-
-  function getSeoulWeekdayIndex(date) {
-    var weekday = new Intl.DateTimeFormat('en-US', {
-      timeZone: 'Asia/Seoul',
-      weekday: 'short'
-    }).format(date);
-
-    var map = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
-    return map[weekday];
-  }
-
-  function formatSeoulNow(date) {
-    return new Intl.DateTimeFormat('ko-KR', {
-      timeZone: 'Asia/Seoul',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      weekday: 'long'
-    }).format(date);
-  }
-
-  function getTodayAssignment() {
-    var today = new Date();
-    var weekdayIndex = getSeoulWeekdayIndex(today);
-    var assignment = WEEK_SCHEDULE.find(function(item) {
-      return item.dayIndex === weekdayIndex;
-    });
-
-    return {
-      today: today,
-      weekdayIndex: weekdayIndex,
-      assignment: assignment || null
-    };
-  }
-
-  function renderCurrentCard() {
-    var currentName = document.getElementById('currentName');
-    var currentDate = document.getElementById('currentDate');
-    var currentStatus = document.getElementById('currentStatus');
-    var result = getTodayAssignment();
-
-    currentDate.textContent = formatSeoulNow(result.today) + ' \uAE30\uC900';
-
-    if (!result.assignment) {
-      currentName.textContent = '\uC8FC\uB9D0 \uD734\uBB34';
-      currentStatus.innerHTML = '<span class="status-badge skipped">\uD1A0\uC694\uC77C\uACFC \uC77C\uC694\uC77C\uC740 \uCCAD\uC18C \uC5C6\uC74C</span>';
-      return;
-    }
-
-    currentName.textContent = result.assignment.name;
-    currentStatus.innerHTML = '<span class="status-badge pending">' + result.assignment.dayLabel + ' \uB2F4\uB2F9\uC790</span>';
-  }
-
-  function renderWeeklyList() {
-    var result = getTodayAssignment();
-    var weeklyList = document.getElementById('weeklyList');
-
-    weeklyList.innerHTML = WEEK_SCHEDULE.map(function(item, index) {
-      var isToday = item.dayIndex === result.weekdayIndex;
-      var tagClass = isToday ? 'queue-tag tag-current' : 'queue-tag';
-      var tagText = isToday ? 'TODAY' : item.shortLabel;
-
-      return (
-        '<div class="queue-item' + (isToday ? ' is-current' : '') + '">' +
-          '<span class="queue-num">' + String(index + 1).padStart(2, '0') + '</span>' +
-          '<span class="queue-name">' + escapeHtml(item.dayLabel + ' · ' + item.name) + '</span>' +
-          '<span class="' + tagClass + '">' + escapeHtml(tagText) + '</span>' +
-        '</div>'
-      );
-    }).join('');
-  }
-
-  var lunchItems = [];
-
-  function onLunchLoaded(items) {
-    lunchItems = items;
-    var btn = document.getElementById('lunchBtn');
-    btn.disabled = false;
-  }
-
-  function showLunchModal() {
-    var content = document.getElementById('lunchModalContent');
-    content.innerHTML = lunchItems.map(function(item) {
-      if (item.error) {
-        return '<div class="lunch-modal-item">' +
-          '<div class="lunch-name">' + escapeHtml(item.name) + '</div>' +
-          '<div class="lunch-sub">' + escapeHtml(item.message) + '</div>' +
-        '</div>';
-      }
-      return '<div class="lunch-modal-item">' +
-        '<div class="lunch-name">' + escapeHtml(item.name) + '</div>' +
-        '<img class="lunch-modal-image" src="' + escapeHtml(item.imageUrl) + '" alt="' + escapeHtml(item.name) + '">' +
-      '</div>';
-    }).join('');
-    document.getElementById('lunchModal').classList.add('active');
-  }
-
-  function closeLunchModal() {
-    document.getElementById('lunchModal').classList.remove('active');
-  }
-
-  function generateLotto() {
-    var nums = [];
-    while (nums.length < 6) {
-      var n = Math.floor(Math.random() * 45) + 1;
-      if (nums.indexOf(n) === -1) nums.push(n);
-    }
-    nums.sort(function(a, b) { return a - b; });
-
-    var bonus;
-    do { bonus = Math.floor(Math.random() * 45) + 1; } while (nums.indexOf(bonus) !== -1);
-
-    function ballColor(n) {
-      if (n <= 10) return 'ball-yellow';
-      if (n <= 20) return 'ball-blue';
-      if (n <= 30) return 'ball-red';
-      if (n <= 40) return 'ball-gray';
-      return 'ball-green';
-    }
-
-    var numbersEl = document.getElementById('lottoNumbers');
-    numbersEl.innerHTML = nums.map(function(n) {
-      return '<span class="lotto-ball ' + ballColor(n) + '">' + n + '</span>';
-    }).join('');
-    document.getElementById('lottoBonus').className = 'lotto-bonus-ball ' + ballColor(bonus);
-    document.getElementById('lottoBonus').textContent = bonus;
-    document.getElementById('lottoResult').style.display = 'block';
-  }
-
-  async function loadLunchMenus() {
-    try {
-      var response = await fetch('/api/lunch', { cache: 'no-store' });
-      if (!response.ok) throw new Error('HTTP ' + response.status);
-
-      var payload = await response.json();
-      onLunchLoaded(payload.items || []);
-    } catch (error) {
-      onLunchLoaded([
-        {
-          name: '\uC810\uC2EC \uBA54\uB274',
-          error: true,
-          channelUrl: '#',
-          message: '\uBA54\uB274 \uC774\uBBF8\uC9C0\uB97C \uBD88\uB7EC\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.'
-        }
-      ]);
-    }
-  }
-
-  async function init() {
-    renderCurrentCard();
-    renderWeeklyList();
-    await loadLunchMenus();
-    document.getElementById('loading').style.display = 'none';
-    document.getElementById('app').style.display = 'block';
-  }
-
-  init().catch(function(error) {
-    document.getElementById('loading').innerHTML =
-      '<div style="color:#e74c3c;text-align:center">\uCD08\uAE30\uD654 \uC2E4\uD328<br><small>' +
-      escapeHtml(error.message) +
-      '</small></div>';
+  localStorage.setItem('lunch-last-visit-date', todayKey);
+  return false;
+}
+function getTodayAssignment() {
+  var today = new Date();
+  var weekdayIndex = getSeoulWeekdayIndex(today);
+  var assignment = WEEK_SCHEDULE.find(function (item) {
+    return item.dayIndex === weekdayIndex;
   });
+  return {
+    today: today,
+    weekdayIndex: weekdayIndex,
+    assignment: assignment || null
+  };
+}
+function renderWeeklyList() {
+  var result = getTodayAssignment();
+  var weeklyList = document.getElementById('weeklyList');
+  weeklyList.innerHTML = WEEK_SCHEDULE.map(function (item, index) {
+    var isToday = item.dayIndex === result.weekdayIndex;
+    var tagClass = isToday ? 'queue-tag tag-current' : 'queue-tag';
+    var tagText = isToday ? 'TODAY' : item.shortLabel;
+    return (
+      '<div class="queue-item' + (isToday ? ' is-current' : '') + '">' +
+      '<span class="queue-num">' + String(index + 1).padStart(2, '0') + '</span>' +
+      '<span class="queue-name">' + escapeHtml(item.dayLabel + ' · ' + item.name) + '</span>' +
+      '<span class="' + tagClass + '">' + escapeHtml(tagText) + '</span>' +
+      '</div>'
+    );
+  }).join('');
+}
+var lunchItems = [];
+function renderLunchBoard() {
+  var lunchBoard = document.getElementById('lunchBoard');
+  if (!lunchItems.length) {
+    lunchBoard.innerHTML = '<div class="lunch-modal-item" style="text-align:center;padding:20px;">' +
+      '<div class="lunch-name">점심 메뉴</div>' +
+      '<div class="lunch-sub">표시할 메뉴가 없습니다.</div>' +
+    '</div>';
+    return;
+  }
+  lunchBoard.innerHTML = lunchItems.map(function(item) {
+    if (item.error) {
+      return '<div class="lunch-modal-item" style="text-align:center;">' +
+        '<div class="lunch-name">' + escapeHtml(item.name) + '</div>' +
+        '<div class="lunch-sub">' + escapeHtml(item.message) + '</div>' +
+      '</div>';
+    }
+    return '<div class="lunch-modal-item">' +
+      '<div class="lunch-name">' + escapeHtml(item.name) + '</div>' +
+      '<img class="lunch-modal-image" src="' + escapeHtml(item.imageUrl) + '" alt="' + escapeHtml(item.name) + '">' +
+    '</div>';
+  }).join('');
+}
+function onLunchLoaded(items) {
+  lunchItems = items;
+  renderLunchBoard();
+}
+function generateLotto() {
+  var nums = [];
+  while (nums.length < 6) {
+    var n = Math.floor(Math.random() * 45) + 1;
+    if (nums.indexOf(n) === -1) nums.push(n);
+  }
+  nums.sort(function (a, b) { return a - b; });
+  var bonus;
+  do { bonus = Math.floor(Math.random() * 45) + 1; } while (nums.indexOf(bonus) !== -1);
+  function ballColor(n) {
+    if (n <= 10) return 'ball-yellow';
+    if (n <= 20) return 'ball-blue';
+    if (n <= 30) return 'ball-red';
+    if (n <= 40) return 'ball-gray';
+    return 'ball-green';
+  }
+  var numbersEl = document.getElementById('lottoNumbers');
+  numbersEl.innerHTML = nums.map(function (n) {
+    return '<span class="lotto-ball ' + ballColor(n) + '">' + n + '</span>';
+  }).join('');
+  document.getElementById('lottoBonus').className = 'lotto-bonus-ball ' + ballColor(bonus);
+  document.getElementById('lottoBonus').textContent = bonus;
+  document.getElementById('lottoResult').style.display = 'block';
+}
+async function loadLunchMenus() {
+  try {
+    var response = await fetch('/api/lunch', { cache: 'no-store' });
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+    var payload = await response.json();
+    onLunchLoaded(payload.items || []);
+  } catch (error) {
+    onLunchLoaded([
+      {
+        name: '점심 메뉴',
+        error: true,
+        channelUrl: '#',
+        message: '메뉴 이미지를 불러오지 못했습니다.'
+      }
+    ]);
+  }
+}
+async function init() {
+  if (checkAndReloadIfStale()) return;
+  renderWeeklyList();
+  await loadLunchMenus();
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+}
+init().catch(function (error) {
+  document.getElementById('loading').innerHTML =
+    '<div style="color:#e74c3c;text-align:center">초기화 실패<br><small>' +
+    escapeHtml(error.message) +
+    '</small></div>';
+});
 </script>
 </body>
 </html>
