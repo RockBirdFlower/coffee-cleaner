@@ -28,6 +28,11 @@
       </div>
       <div class="actions" id="lunchBoard"></div>
 
+      <div class="section-header">
+        <span class="section-title">청소 당번</span>
+      </div>
+      <div id="cleaningDuty" class="cleaning-duty-card"></div>
+
       <button class="btn btn-lotto" onclick="generateLotto()">🎱 로또 번호 뽑기</button>
       <div id="lottoResult" class="lotto-result" style="display:none">
         <div class="lotto-label">이번 주 행운의 번호</div>
@@ -128,6 +133,19 @@
       document.getElementById('lunchModal').classList.remove('active');
     }
 
+    // 3-1. 청소 당번 로직
+    var cleaningDuty = ['유', '신', '민', '강', '차'];
+
+    function renderCleaningDuty() {
+      var today = new Date();
+      var dayOfWeek = today.getDay();
+      dayOfWeek = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+      var dutyPerson = cleaningDuty[dayOfWeek];
+
+      var cleaningCard = document.getElementById('cleaningDuty');
+      cleaningCard.innerHTML = '<div class="cleaning-person">' + dutyPerson + '</div>';
+    }
+
     // 4. 로또 로직
     function generateLotto() {
       var nums = [];
@@ -159,6 +177,7 @@
     async function init() {
       if (checkAndReloadIfStale()) return;
       await loadLunchMenus();
+      renderCleaningDuty();
       document.getElementById('loading').style.display = 'none';
       document.getElementById('app').style.display = 'block';
     }
