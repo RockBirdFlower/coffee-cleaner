@@ -489,12 +489,43 @@
     display: none;
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.85);
+    background: rgba(0,0,0,0.96);
     z-index: 9999;
     align-items: flex-start;
     justify-content: center;
-    padding: 40px 20px;
+    padding: 64px 20px 40px;
     overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  body.modal-open { overflow: hidden; }
+
+  .modal-close {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text);
+    font-size: 18px;
+    cursor: pointer;
+    z-index: 1;
+  }
+
+  .modal-indicator {
+    display: none;
+    position: fixed;
+    top: 22px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-family: 'Space Mono', monospace;
+    font-size: 14px;
+    color: var(--text);
+    pointer-events: none;
   }
 
   .modal-overlay.active {
@@ -533,9 +564,47 @@
     border-radius: 12px;
   }
 
+  /* 접은 폴드, 일반 폰: 한 식당씩 좌우로 넘겨 본다. 펼친 화면은 나란히 보기를 유지한다. */
   @media (max-width: 640px) {
+    .modal-overlay {
+      padding: 64px 0 24px;
+    }
+
+    .modal-indicator {
+      display: block;
+    }
+
     .lunch-modal-content {
-      flex-direction: column;
+      gap: 0;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      overscroll-behavior-x: contain;
+      scrollbar-width: none;
+    }
+
+    .lunch-modal-content::-webkit-scrollbar {
+      display: none;
+    }
+
+    .lunch-modal-content .lunch-modal-item {
+      flex: 0 0 100%;
+      min-width: 0;
+      padding: 0 20px;
+      scroll-snap-align: center;
+      scroll-snap-stop: always;
+    }
+
+    /* 좁은 화면에서도 번호 6개가 한 줄에 들어가도록 카드 폭에 맞춘다. */
+    .lotto-numbers {
+      gap: 6px;
+      flex-wrap: nowrap;
+    }
+
+    .lotto-ball,
+    .lotto-bonus-ball {
+      width: min(42px, calc((100vw - 112px) / 6));
+      height: min(42px, calc((100vw - 112px) / 6));
+      font-size: 14px;
     }
   }
 
