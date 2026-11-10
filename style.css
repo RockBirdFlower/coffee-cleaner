@@ -68,30 +68,6 @@ h1 {
 
 .btn-retry { background: var(--surface2); }
 
-/* Restaurant tabs: only used where one restaurant is shown at a time. */
-.lunch-tabs { display: none; }
-
-.lunch-tab {
-  flex: 1;
-  min-width: 0;
-  min-height: 44px;
-  border: none;
-  border-radius: 9px;
-  background: transparent;
-  color: var(--text-muted);
-  font-family: inherit;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-}
-
-.lunch-tab.active {
-  background: var(--surface2);
-  color: var(--accent);
-  font-weight: 700;
-}
-
 /* Lunch board */
 .actions {
   display: grid;
@@ -264,18 +240,6 @@ h1 {
   cursor: pointer;
 }
 
-.modal-indicator {
-  display: none;
-  position: fixed;
-  top: 22px;
-  left: 0;
-  right: 0;
-  font-size: 14px;
-  text-align: center;
-  color: var(--text-muted);
-  pointer-events: none;
-}
-
 .lunch-modal-content {
   display: flex;
   gap: 20px;
@@ -352,7 +316,7 @@ h1 {
   .lunch-modal-content { max-width: 2004px; }
 }
 
-/* 접은 폴드, 일반 폰: 식단표를 전체 폭으로 한 식당씩 넘겨 본다. 펼친 화면은 2열과 나란히 보기를 유지한다. */
+/* 접은 폴드, 일반 폰: 식단표를 전체 폭으로 위아래로 쌓는다. 펼친 화면은 2열과 나란히 보기를 유지한다. */
 @media (max-width: 640px) {
   body { padding: 8px 20px 24px; }
 
@@ -360,70 +324,18 @@ h1 {
 
   h1 { font-size: 20px; }
 
-  .lunch-tabs {
-    display: flex;
-    gap: 4px;
-    min-height: 52px;
-    margin-bottom: 12px;
-    padding: 4px;
-    border-radius: 12px;
-    background: var(--surface);
-  }
-
-  /* 화면 끝까지 넓혀 다음 식단표의 가장자리가 살짝 보이게 해 넘길 수 있음을 알린다. */
   #lunchBoard {
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    margin: 0 -20px 16px;
-    padding: 0 20px;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    overscroll-behavior-x: contain;
-    scrollbar-width: none;
+    grid-template-columns: 1fr;
+    gap: 24px;
   }
-
-  #lunchBoard::-webkit-scrollbar { display: none; }
-
-  #lunchBoard .lunch-modal-item {
-    flex: 0 0 100%;
-    min-width: 0;
-    scroll-snap-align: center;
-    scroll-snap-stop: always;
-  }
-
-  /* 탭이 식당 이름을 보여주므로 카드의 이름은 중복이다. */
-  .lunch-tabs:not(:empty) + #lunchBoard .lunch-name { display: none; }
 
   /* 이미지 로드 전에도 자리를 잡아 아래 버튼이 밀리지 않게 한다. */
   #lunchBoard .lunch-modal-image { aspect-ratio: auto 992 / 1403; }
 
-  .loading {
-    flex: 0 0 100%;
-    aspect-ratio: 5 / 7;
-  }
+  .loading { aspect-ratio: 5 / 7; }
 
-  .modal-overlay { padding: 64px 0 24px; }
-
-  .modal-indicator { display: block; }
-
-  .lunch-modal-content {
-    gap: 0;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    overscroll-behavior-x: contain;
-    scrollbar-width: none;
-  }
-
-  .lunch-modal-content::-webkit-scrollbar { display: none; }
-
-  .lunch-modal-content .lunch-modal-item {
-    flex: 0 0 100%;
-    min-width: 0;
-    padding: 0 20px;
-    scroll-snap-align: center;
-    scroll-snap-stop: always;
-  }
+  /* 메인 화면이 이미 세로로 쌓여 있으므로 모달은 누른 식당 하나만 크게 보여 준다. */
+  .lunch-modal-content .lunch-modal-item:not(.is-selected) { display: none; }
 
   /* 좁은 화면에서도 번호 6개가 한 줄에 들어가도록 카드 폭에 맞춘다. */
   .lotto-numbers {
