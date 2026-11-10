@@ -5,7 +5,7 @@ This project is deployed on Vercel as a static site with one cached Node.js API 
 ## What changes on Vercel
 
 - `api/lunch.js` fetches Kakao profile metadata for lunch images
-- the lunch API uses Vercel cache headers, so the result is effectively refreshed once per day without Firebase or cron
+- the lunch API uses Vercel cache headers with a 5-minute lifetime, so a new day's menu appears without Firebase or cron
 
 ## Vercel Project Settings
 

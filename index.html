@@ -48,12 +48,11 @@
   </div>
 
   <script>
-    // 1. 가시성 감지 (포커스 시 날짜 체크)
-    document.addEventListener('visibilitychange', function () {
-      if (document.visibilityState === 'visible') {
-        checkAndReloadIfStale();
-      }
-    });
+    // 1. 날짜 변경 감지 (화면 복귀, 포커스, 뒤로가기 복원, 켜 둔 화면은 1분 주기)
+    document.addEventListener('visibilitychange', checkAndReloadIfStale);
+    window.addEventListener('focus', checkAndReloadIfStale);
+    window.addEventListener('pageshow', checkAndReloadIfStale);
+    setInterval(checkAndReloadIfStale, 60000);
 
     // 2. 날짜 관련 유틸리티
     function getSeoulDateKey(date) {
@@ -62,16 +61,14 @@
       return kstTime.toISOString().slice(0, 10);
     }
 
+    // 탭끼리 공유되는 저장소가 아니라 이 페이지를 불러온 날짜와 비교해야
+    // 다른 탭이 먼저 열려도 오래된 탭이 새로고침된다.
+    var pageLoadDateKey = getSeoulDateKey(new Date());
+
     function checkAndReloadIfStale() {
-      var todayKey = getSeoulDateKey(new Date());
-      var lastVisitKey = localStorage.getItem('lunch-last-visit-date');
-      if (lastVisitKey && lastVisitKey !== todayKey) {
-        localStorage.setItem('lunch-last-visit-date', todayKey);
-        window.location.href = window.location.pathname + '?refresh=' + Date.now();
-        return true;
-      }
-      localStorage.setItem('lunch-last-visit-date', todayKey);
-      return false;
+      if (document.visibilityState !== 'visible') return;
+      if (getSeoulDateKey(new Date()) === pageLoadDateKey) return;
+      window.location.replace(window.location.pathname + '?refresh=' + Date.now());
     }
 
     function escapeHtml(str) {
@@ -216,7 +213,6 @@
 
     // 5. 초기화
     async function init() {
-      if (checkAndReloadIfStale()) return;
       await loadLunchMenus();
       document.getElementById('loading').style.display = 'none';
       document.getElementById('app').style.display = 'block';

@@ -95,7 +95,7 @@ module.exports = async function handler(req, res) {
   try {
     const items = await Promise.all(LUNCH_SOURCES.map(fetchLunchItem));
 
-    res.setHeader("Cache-Control", "public, max-age=0, s-maxage=86400, stale-while-revalidate=3600");
+    res.setHeader("Cache-Control", "public, max-age=0, s-maxage=300, stale-while-revalidate=60");
     res.status(200).json({
       ok: true,
       items,
