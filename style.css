@@ -152,12 +152,19 @@ h1 {
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* Lotto */
-.btn-lotto {
-  width: 100%;
+.quick-actions {
+  display: flex;
+  gap: 8px;
   margin-bottom: 16px;
 }
 
-.lotto-result {
+.quick-actions .btn {
+  flex: 1;
+  white-space: nowrap;
+}
+
+.lotto-result,
+.coffee-game {
   margin-bottom: 20px;
   padding: 20px;
   border: 1px solid var(--border);
@@ -212,6 +219,81 @@ h1 {
 
 .lotto-plus {
   font-size: 16px;
+  color: var(--text-muted);
+}
+
+/* Coffee bet */
+.coffee-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.coffee-step {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--surface2);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.coffee-count {
+  min-width: 40px;
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.coffee-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  max-width: 320px;
+  margin: 0 auto;
+}
+
+.coffee-card {
+  aspect-ratio: 3 / 4;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface2);
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.15s, transform 0.15s, opacity 0.15s;
+}
+
+.coffee-card:active { transform: scale(0.96); }
+
+.coffee-card:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.coffee-card.is-safe { font-size: 13px; }
+
+.coffee-card.is-loser {
+  border-color: var(--accent);
+  background: var(--accent);
+  font-size: 24px;
+  opacity: 1;
+}
+
+@media (hover: hover) {
+  .coffee-card:not(:disabled):hover { border-color: var(--accent); }
+}
+
+.coffee-status {
+  margin-top: 14px;
+  font-size: 13px;
   color: var(--text-muted);
 }
 
@@ -295,13 +377,15 @@ h1 {
     height: var(--menu-height);
   }
 
-  .btn-lotto {
+  .quick-actions {
     grid-column: 2;
     grid-row: 1;
     margin-top: 32px;
   }
 
-  .lotto-result {
+  .quick-actions .btn { padding: 12px 10px; }
+
+  .side-panels {
     grid-column: 2;
     grid-row: 2;
   }
@@ -328,36 +412,43 @@ h1 {
 
   .container { position: relative; }
 
-  /* 제목 오른쪽에 로또 버튼이 들어가므로 날짜는 제목 아래로 내린다. */
+  /* 제목 오른쪽에 로또·커피 내기 버튼이 들어가므로 날짜는 제목 아래로 내린다. */
   header {
     flex-direction: column;
     align-items: flex-start;
     gap: 2px;
-    padding: 12px 140px 14px 0;
+    padding: 12px 152px 14px 0;
   }
 
   h1 { font-size: 20px; }
 
   .today-date { font-size: 13px; }
 
-  /* 식단표 아래까지 스크롤하지 않도록 로또 버튼은 상단에, 결과는 식단표 위에 둔다. */
+  /* 식단표 아래까지 스크롤하지 않도록 버튼은 상단에, 결과는 식단표 위에 둔다. */
   #app {
     display: flex;
     flex-direction: column;
   }
 
-  .btn-lotto {
+  .quick-actions {
     position: absolute;
     top: 7px;
     right: 0;
-    width: auto;
-    min-height: 40px;
+    gap: 6px;
     margin: 0;
+  }
+
+  .quick-actions .btn {
+    flex: none;
+    min-height: 40px;
     padding: 8px 14px;
     font-size: 14px;
   }
 
-  .lotto-result { order: -1; }
+  /* 버튼 두 개가 제목 옆에 들어가도록 로또는 짧은 이름만 보여 준다. */
+  .btn-long { display: none; }
+
+  .side-panels { order: -1; }
 
   #lunchBoard {
     grid-template-columns: 1fr;

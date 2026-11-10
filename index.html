@@ -26,13 +26,27 @@
     <div id="app">
       <div class="actions" id="lunchBoard"></div>
 
-      <button class="btn btn-lotto" onclick="generateLotto()">로또 번호 뽑기</button>
-      <div id="lottoResult" class="lotto-result" style="display:none">
-        <div class="lotto-label">이번 주 행운의 번호</div>
-        <div class="lotto-numbers" id="lottoNumbers"></div>
-        <div class="lotto-bonus">
-          <span class="lotto-plus">+</span>
-          <span class="lotto-bonus-ball" id="lottoBonus"></span>
+      <div class="quick-actions">
+        <button class="btn" onclick="generateLotto()">로또<span class="btn-long"> 번호 뽑기</span></button>
+        <button class="btn" onclick="startCoffee()">커피 내기</button>
+      </div>
+      <div class="side-panels">
+        <div id="lottoResult" class="lotto-result" style="display:none">
+          <div class="lotto-label">이번 주 행운의 번호</div>
+          <div class="lotto-numbers" id="lottoNumbers"></div>
+          <div class="lotto-bonus">
+            <span class="lotto-plus">+</span>
+            <span class="lotto-bonus-ball" id="lottoBonus"></span>
+          </div>
+        </div>
+        <div id="coffeeGame" class="coffee-game" style="display:none">
+          <div class="coffee-stepper">
+            <button type="button" class="coffee-step" aria-label="인원 줄이기" onclick="changeCoffeeCount(-1)">−</button>
+            <span class="coffee-count" id="coffeeCount"></span>
+            <button type="button" class="coffee-step" aria-label="인원 늘리기" onclick="changeCoffeeCount(1)">+</button>
+          </div>
+          <div class="coffee-cards" id="coffeeCards"></div>
+          <div class="coffee-status" id="coffeeStatus" aria-live="polite"></div>
         </div>
       </div>
 
@@ -225,11 +239,54 @@
       }).join('');
       document.getElementById('lottoBonus').className = 'lotto-bonus-ball ' + ballColor(bonus);
       document.getElementById('lottoBonus').textContent = bonus;
+      document.getElementById('coffeeGame').style.display = 'none';
       document.getElementById('lottoResult').style.display = 'block';
       document.getElementById('lottoResult').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
-    // 5. 초기화
+    // 5. 커피 내기: 인원수만큼 카드를 깔고 한 장에만 당첨을 숨긴다. 이름 입력 없이 한 명씩 고른다.
+    var coffeeCount = 4;
+    var coffeeLoser = -1;
+    var coffeeDone = false;
+
+    function startCoffee() {
+      coffeeLoser = Math.floor(Math.random() * coffeeCount);
+      coffeeDone = false;
+      document.getElementById('coffeeCount').textContent = coffeeCount + '명';
+      var cards = '';
+      for (var i = 0; i < coffeeCount; i++) {
+        cards += '<button type="button" class="coffee-card" aria-label="카드 ' + (i + 1) + '" onclick="flipCoffeeCard(' + i + ')">?</button>';
+      }
+      document.getElementById('coffeeCards').innerHTML = cards;
+      document.getElementById('coffeeStatus').textContent = '한 명씩 카드를 고르세요';
+      document.getElementById('lottoResult').style.display = 'none';
+      document.getElementById('coffeeGame').style.display = 'block';
+      document.getElementById('coffeeGame').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function changeCoffeeCount(delta) {
+      coffeeCount = Math.min(8, Math.max(2, coffeeCount + delta));
+      startCoffee();
+    }
+
+    function flipCoffeeCard(index) {
+      if (coffeeDone) return;
+      var cards = document.querySelectorAll('.coffee-card');
+      if (index !== coffeeLoser) {
+        cards[index].textContent = '통과';
+        cards[index].classList.add('is-safe');
+        cards[index].disabled = true;
+        // 한 장만 남으면 그 카드가 당첨이므로 바로 공개한다.
+        if (document.querySelectorAll('.coffee-card:not(:disabled)').length > 1) return;
+      }
+      coffeeDone = true;
+      cards.forEach(function (card) { card.disabled = true; });
+      cards[coffeeLoser].textContent = '☕';
+      cards[coffeeLoser].classList.add('is-loser');
+      document.getElementById('coffeeStatus').textContent = '당첨! 오늘 커피 삽니다 · 버튼을 누르면 다시 섞습니다';
+    }
+
+    // 6. 초기화
     loadLunchMenus();
   </script>
 </body>
