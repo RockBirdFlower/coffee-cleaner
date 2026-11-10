@@ -5,26 +5,22 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>점심 메뉴 & 로또</title>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
   <div class="container">
     <header>
-      <div class="logo">🍴</div>
       <h1>오늘의 점심</h1>
-      <p class="subtitle">LUNCH & LUCK</p>
+      <p class="today-date" id="todayDate"></p>
     </header>
 
     <div id="app">
-      <div class="section-header">
-        <span class="section-title">오늘의 메뉴</span>
-        <span class="section-indicator" id="lunchBoardIndicator"></span>
-      </div>
-      <div class="actions" id="lunchBoard" onscroll="updateLunchBoardIndicator()"></div>
+      <div class="lunch-tabs" id="lunchTabs"></div>
+      <div class="actions" id="lunchBoard" onscroll="updateLunchTabs()"></div>
 
-      <button class="btn btn-lotto" onclick="generateLotto()">🎱 로또 번호 뽑기</button>
+      <button class="btn btn-lotto" onclick="generateLotto()">로또 번호 뽑기</button>
       <div id="lottoResult" class="lotto-result" style="display:none">
         <div class="lotto-label">이번 주 행운의 번호</div>
         <div class="lotto-numbers" id="lottoNumbers"></div>
@@ -66,6 +62,13 @@
       window.location.replace(window.location.pathname + '?refresh=' + Date.now());
     }
 
+    document.getElementById('todayDate').textContent = new Intl.DateTimeFormat('ko-KR', {
+      timeZone: 'Asia/Seoul',
+      month: 'long',
+      day: 'numeric',
+      weekday: 'long'
+    }).format(new Date());
+
     function escapeHtml(str) {
       var div = document.createElement('div');
       div.textContent = str || '';
@@ -77,8 +80,8 @@
 
     async function loadLunchMenus() {
       document.getElementById('lunchBoard').innerHTML =
-        '<div class="loading lunch-board-loading"><div class="spinner"></div>LOADING...</div>';
-      updateLunchBoardIndicator();
+        '<div class="loading"><div class="spinner"></div>메뉴를 불러오는 중</div>';
+      document.getElementById('lunchTabs').innerHTML = '';
       try {
         var response = await fetch('/api/lunch', { cache: 'no-store' });
         if (!response.ok) throw new Error('HTTP ' + response.status);
@@ -118,24 +121,38 @@
         var errorContent = item.error ? renderLunchError(item) : '';
         var imgContent = item.imageUrl ? renderLunchImage(item) : '';
         
-        return '<div class="lunch-modal-item"' + clickAttrs + '>' +
+        return '<div class="lunch-modal-item' + (item.error ? ' is-error' : '') + '"' + clickAttrs + '>' +
                '<div class="lunch-name">' + escapeHtml(item.name) + '</div>' +
                errorContent + imgContent + '</div>';
       }).join('');
-      updateLunchBoardIndicator();
+      renderLunchTabs();
     }
 
-    function updateLunchBoardIndicator() {
-      var board = document.getElementById('lunchBoard');
-      var cards = board.children;
-      var indicator = document.getElementById('lunchBoardIndicator');
-      if (cards.length < 2) {
-        indicator.textContent = '';
-        return;
-      }
-      var cardStep = cards[1].offsetLeft - cards[0].offsetLeft;
-      var current = (cardStep > 0 ? Math.round(board.scrollLeft / cardStep) : 0) + 1;
-      indicator.textContent = current + ' / ' + cards.length;
+    function renderLunchTabs() {
+      document.getElementById('lunchTabs').innerHTML = lunchItems.length < 2 ? '' : lunchItems.map(function (item, index) {
+        return '<button type="button" class="lunch-tab" onclick="scrollLunchBoardTo(' + index + ')">' + escapeHtml(item.name) + '</button>';
+      }).join('');
+      updateLunchTabs();
+    }
+
+    function getLunchCardStep() {
+      var cards = document.getElementById('lunchBoard').children;
+      return cards[1].offsetLeft - cards[0].offsetLeft;
+    }
+
+    function scrollLunchBoardTo(index) {
+      document.getElementById('lunchBoard').scrollTo({ left: index * getLunchCardStep(), behavior: 'smooth' });
+    }
+
+    function updateLunchTabs() {
+      var tabs = document.getElementById('lunchTabs').children;
+      if (tabs.length < 2) return;
+      var cardStep = getLunchCardStep();
+      var current = cardStep > 0 ? Math.round(document.getElementById('lunchBoard').scrollLeft / cardStep) : 0;
+      Array.prototype.forEach.call(tabs, function (tab, index) {
+        tab.classList.toggle('active', index === current);
+        tab.setAttribute('aria-current', index === current ? 'true' : 'false');
+      });
     }
 
     var lunchModalHistoryPushed = false;
