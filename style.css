@@ -641,12 +641,80 @@
   transform: scale(1.02);
 }
 
+.section-indicator {
+  display: none;
+  font-family: 'Space Mono', monospace;
+  font-size: 12px;
+  color: var(--accent2);
+}
+
+/* 접은 폴드, 일반 폰: 식단표를 전체 폭으로 한 식당씩 넘겨 본다. 펼친 화면은 2열을 유지한다. */
 @media (max-width: 640px) {
-  #lunchBoard .lunch-modal-item {
-    padding: 12px;
+  body {
+    padding-top: 8px;
   }
 
-  #lunchBoard .lunch-name {
-    font-size: 14px;
+  header {
+    display: grid;
+    grid-template-columns: auto auto;
+    justify-content: center;
+    align-items: center;
+    column-gap: 10px;
+    padding: 4px 0 14px;
+    text-align: left;
+  }
+
+  .logo {
+    grid-row: span 2;
+    font-size: 30px;
+    margin-bottom: 0;
+  }
+
+  h1 {
+    font-size: 16px;
+    letter-spacing: 2px;
+  }
+
+  .subtitle {
+    margin-top: 2px;
+    font-size: 10px;
+  }
+
+  .section-title {
+    font-size: 12px;
+    letter-spacing: 1px;
+  }
+
+  .section-indicator {
+    display: inline;
+  }
+
+  /* 화면 끝까지 넓혀 다음 카드의 가장자리가 살짝 보이게 해 넘길 수 있음을 알린다. */
+  #lunchBoard {
+    display: flex;
+    gap: 10px;
+    margin: 0 -20px 20px;
+    padding: 0 20px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+  }
+
+  #lunchBoard::-webkit-scrollbar {
+    display: none;
+  }
+
+  #lunchBoard .lunch-modal-item {
+    flex: 0 0 100%;
+    min-width: 0;
+    padding: 12px;
+    scroll-snap-align: center;
+    scroll-snap-stop: always;
+  }
+
+  /* 이미지 로드 전에도 자리를 잡아 아래 버튼이 밀리지 않게 한다. */
+  #lunchBoard .lunch-modal-image {
+    aspect-ratio: auto 992 / 1403;
   }
 }
