@@ -42,7 +42,7 @@ async function fetchLunchItem(source) {
   try {
     const response = await fetch(source.fetchUrl, {
       headers: {
-        "user-agent": "Mozilla/5.0 (compatible; coffee-cleaner-bot/1.0; +https://vercel.com)",
+        "user-agent": "Mozilla/5.0 (compatible; today-lunch-bot/1.0; +https://vercel.com)",
       },
       cache: "no-store",
       signal: AbortSignal.timeout(KAKAO_TIMEOUT_MS),

@@ -45,6 +45,12 @@ h1 {
   color: var(--text-muted);
 }
 
+.weekend-notice {
+  margin: -8px 0 16px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
 /* Buttons */
 .btn {
   min-height: 44px;
@@ -320,9 +326,38 @@ h1 {
 @media (max-width: 640px) {
   body { padding: 8px 20px 24px; }
 
-  header { padding: 12px 0 14px; }
+  .container { position: relative; }
+
+  /* 제목 오른쪽에 로또 버튼이 들어가므로 날짜는 제목 아래로 내린다. */
+  header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    padding: 12px 140px 14px 0;
+  }
 
   h1 { font-size: 20px; }
+
+  .today-date { font-size: 13px; }
+
+  /* 식단표 아래까지 스크롤하지 않도록 로또 버튼은 상단에, 결과는 식단표 위에 둔다. */
+  #app {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .btn-lotto {
+    position: absolute;
+    top: 7px;
+    right: 0;
+    width: auto;
+    min-height: 40px;
+    margin: 0;
+    padding: 8px 14px;
+    font-size: 14px;
+  }
+
+  .lotto-result { order: -1; }
 
   #lunchBoard {
     grid-template-columns: 1fr;

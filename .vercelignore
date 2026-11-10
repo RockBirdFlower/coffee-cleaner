@@ -1,0 +1,3 @@
+# 사이트에 필요 없는 로컬 개발용 파일은 배포하지 않는다.
+/scripts
+/DEPLOYMENT.md

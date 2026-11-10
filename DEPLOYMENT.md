@@ -23,4 +23,5 @@ This project is deployed on Vercel as a static site with one cached Node.js API 
 
 ## Notes
 
+- `.vercelignore` keeps local-only files (`scripts/`, this document) out of the deployment
 - GitHub Pages workflow was removed, so Vercel is the only deployment path
