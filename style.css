@@ -45,6 +45,17 @@ h1 {
   color: var(--text-muted);
 }
 
+.weather-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: -8px 0 16px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.weather-line[hidden] { display: none; }
+
 .weekend-notice {
   margin: -8px 0 16px;
   font-size: 13px;

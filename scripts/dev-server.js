@@ -1,4 +1,4 @@
-// 로컬 미리보기 서버: 정적 파일과 실제 api/lunch.js를 실행한다.
+// 로컬 미리보기 서버: 정적 파일과 실제 api 함수를 실행한다.
 // npm run dev            이 PC에서만 접속
 // npm run dev -- --lan   같은 네트워크의 휴대폰에서도 접속
 const http = require("http");
@@ -9,6 +9,7 @@ const path = require("path");
 const ROOT = path.join(__dirname, "..");
 const PORT = 3200;
 const LAN = process.argv.includes("--lan");
+const API_ROUTES = ["/api/lunch", "/api/weather"];
 const STATIC_FILES = {
   "/": ["index.html", "text/html; charset=utf-8"],
   "/index.html": ["index.html", "text/html; charset=utf-8"],
@@ -44,9 +45,9 @@ http
   .createServer(async (req, res) => {
     const { pathname } = new URL(req.url, "http://localhost");
 
-    if (pathname === "/api/lunch") {
-      // 서버를 재시작하지 않아도 api/lunch.js 수정이 반영되도록 매번 다시 불러온다.
-      const handlerPath = path.join(ROOT, "api/lunch.js");
+    if (API_ROUTES.includes(pathname)) {
+      // 서버를 재시작하지 않아도 api 파일 수정이 반영되도록 매번 다시 불러온다.
+      const handlerPath = path.join(ROOT, pathname + ".js");
       delete require.cache[require.resolve(handlerPath)];
       await require(handlerPath)(req, withVercelHelpers(res));
       return;

@@ -21,6 +21,7 @@
       <h1>오늘의 점심</h1>
       <p class="today-date" id="todayDate"></p>
     </header>
+    <p class="weather-line" id="weatherLine" hidden></p>
     <p class="weekend-notice" id="weekendNotice" hidden>주말에는 이전 메뉴가 표시될 수 있습니다.</p>
 
     <div id="app">
@@ -286,7 +287,31 @@
       document.getElementById('coffeeStatus').textContent = '당첨! 오늘 커피 삽니다 · 버튼을 누르면 다시 섞습니다';
     }
 
-    // 6. 초기화
+    // 6. 날씨: 부가 정보라서 실패하면 줄을 숨긴 채 둔다.
+    async function loadWeather() {
+      try {
+        var response = await fetch('/api/weather');
+        if (!response.ok) return;
+        var weather = await response.json();
+        if (!weather.ok) return;
+
+        var parts = [weather.location + ' ' + weather.now.temperature + '° ' + weather.now.text];
+        if (weather.lunch) parts.push('12시 ' + weather.lunch.temperature + '° ' + weather.lunch.text);
+        if (weather.rain.chance != null) parts.push(weather.rain.label + ' 강수 ' + weather.rain.chance + '%');
+        if (weather.dust) parts.push('미세먼지 ' + weather.dust);
+
+        var line = document.getElementById('weatherLine');
+        line.innerHTML = parts.map(function (part) {
+          return '<span>' + escapeHtml(part.trim()) + '</span>';
+        }).join('');
+        line.hidden = false;
+      } catch (error) {
+        // 숨긴 상태 유지
+      }
+    }
+
+    // 7. 초기화
+    loadWeather();
     loadLunchMenus();
   </script>
 </body>
