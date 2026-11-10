@@ -13,6 +13,8 @@ const LUNCH_SOURCES = [
   },
 ];
 
+const KAKAO_TIMEOUT_MS = 5000;
+
 function normalizeKakaoImageUrl(url) {
   if (!url) return "";
   return url
@@ -43,6 +45,7 @@ async function fetchLunchItem(source) {
         "user-agent": "Mozilla/5.0 (compatible; coffee-cleaner-bot/1.0; +https://vercel.com)",
       },
       cache: "no-store",
+      signal: AbortSignal.timeout(KAKAO_TIMEOUT_MS),
     });
 
     if (!response.ok) {
@@ -95,7 +98,11 @@ module.exports = async function handler(req, res) {
   try {
     const items = await Promise.all(LUNCH_SOURCES.map(fetchLunchItem));
 
-    res.setHeader("Cache-Control", "public, max-age=0, s-maxage=300, stale-while-revalidate=60");
+    // 실패 결과가 저장되면 다시 시도해도 캐시가 끝날 때까지 오류만 보인다.
+    res.setHeader(
+      "Cache-Control",
+      items.some((item) => item.error) ? "no-store" : "public, max-age=0, s-maxage=300, stale-while-revalidate=60"
+    );
     res.status(200).json({
       ok: true,
       items,

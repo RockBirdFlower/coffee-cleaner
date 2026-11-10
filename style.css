@@ -70,69 +70,6 @@
     letter-spacing: 2px;
   }
 
-  .current-card {
-    background: var(--surface);
-    border: 1px solid var(--accent);
-    border-radius: 16px;
-    padding: 28px 24px;
-    margin-bottom: 20px;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .current-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, var(--accent), transparent);
-  }
-
-  .current-label {
-    font-family: 'Space Mono', monospace;
-    font-size: 10px;
-    color: var(--accent);
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    margin-bottom: 10px;
-  }
-
-  .current-name {
-    font-size: 36px;
-    font-weight: 900;
-    color: var(--text);
-    margin-bottom: 6px;
-  }
-
-  .current-date {
-    font-family: 'Space Mono', monospace;
-    font-size: 11px;
-    color: var(--text-muted);
-  }
-
-  .status-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 500;
-    margin-top: 12px;
-  }
-
-  .status-badge.pending {
-    background: rgba(200,162,106,0.15);
-    color: var(--accent2);
-    border: 1px solid rgba(200,162,106,0.3);
-  }
-
-  .status-badge.skipped {
-    background: rgba(224,96,96,0.15);
-    color: var(--danger);
-    border: 1px solid rgba(224,96,96,0.3);
-  }
-
   .actions {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -154,21 +91,6 @@
 
   .btn:active { transform: scale(0.97); }
 
-  .btn-done {
-    background: var(--success);
-    color: #0f1f14;
-  }
-
-  .btn-done:hover { background: #85d99e; }
-
-  .btn-skip {
-    background: var(--surface2);
-    color: var(--danger);
-    border: 1px solid rgba(224,96,96,0.4);
-  }
-
-  .btn-skip:hover { background: rgba(224,96,96,0.15); }
-
   .section-header {
     display: flex;
     align-items: center;
@@ -184,144 +106,6 @@
     letter-spacing: 3px;
     text-transform: uppercase;
   }
-
-  .btn-edit {
-    font-family: 'Space Mono', monospace;
-    font-size: 10px;
-    padding: 4px 12px;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    background: var(--surface2);
-    color: var(--accent);
-    cursor: pointer;
-    letter-spacing: 1px;
-    transition: all 0.15s;
-  }
-
-  .btn-edit:hover { border-color: var(--accent); }
-  .btn-edit.active { background: var(--accent); color: var(--bg); border-color: var(--accent); }
-
-  .queue-list {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    overflow: hidden;
-    margin-bottom: 8px;
-  }
-
-  .queue-item {
-    display: flex;
-    align-items: center;
-    padding: 14px 20px;
-    border-bottom: 1px solid var(--border);
-    transition: background 0.15s;
-    user-select: none;
-    gap: 12px;
-  }
-
-  .queue-item:last-child { border-bottom: none; }
-  .queue-item.is-current { background: rgba(200,162,106,0.08); }
-  .queue-item.dragging { opacity: 0.35; }
-  .queue-item.drag-over { background: rgba(200,162,106,0.18); border-top: 2px solid var(--accent); }
-
-  .drag-handle {
-    color: var(--text-muted);
-    cursor: grab;
-    font-size: 18px;
-    line-height: 1;
-    opacity: 0;
-    transition: opacity 0.15s;
-    flex-shrink: 0;
-  }
-
-  .edit-mode .drag-handle { opacity: 1; }
-  .drag-handle:active { cursor: grabbing; }
-
-  .queue-num {
-    font-family: 'Space Mono', monospace;
-    font-size: 11px;
-    color: var(--text-muted);
-    width: 24px;
-    flex-shrink: 0;
-  }
-
-  .queue-name {
-    flex: 1;
-    font-size: 15px;
-    font-weight: 500;
-  }
-
-  .queue-item.is-current .queue-name {
-    color: var(--accent2);
-    font-weight: 700;
-  }
-
-  .queue-tag {
-    font-size: 11px;
-    padding: 2px 8px;
-    border-radius: 10px;
-    font-weight: 500;
-  }
-
-  .tag-current { background: rgba(200,162,106,0.2); color: var(--accent2); }
-  .tag-skipped { background: rgba(224,96,96,0.15); color: var(--danger); font-size: 10px; }
-
-  .edit-hint {
-    text-align: center;
-    font-size: 12px;
-    color: var(--accent);
-    padding: 8px 0 16px;
-    display: none;
-  }
-
-  .history-list {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    overflow: hidden;
-    margin-bottom: 20px;
-  }
-
-  .history-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 20px;
-    border-bottom: 1px solid var(--border);
-    font-size: 13px;
-  }
-
-  .history-item:last-child { border-bottom: none; }
-  .history-icon { font-size: 16px; flex-shrink: 0; }
-  .history-name { flex: 1; font-weight: 500; }
-
-  .history-date {
-    font-family: 'Space Mono', monospace;
-    font-size: 10px;
-    color: var(--text-muted);
-  }
-
-  .history-result {
-    font-size: 11px;
-    padding: 2px 8px;
-    border-radius: 10px;
-  }
-
-  .result-done { background: rgba(110,201,138,0.15); color: var(--success); }
-  .result-skipped { background: rgba(224,96,96,0.15); color: var(--danger); }
-
-  .notice {
-    background: rgba(200,162,106,0.1);
-    border: 1px solid rgba(200,162,106,0.25);
-    border-radius: 12px;
-    padding: 14px 18px;
-    font-size: 13px;
-    color: var(--accent2);
-    margin-bottom: 20px;
-    display: none;
-  }
-
-  .notice.show { display: block; }
 
   .loading {
     text-align: center;
@@ -344,47 +128,6 @@
 
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  .empty-history {
-    padding: 24px;
-    text-align: center;
-    color: var(--text-muted);
-    font-size: 13px;
-  }
-
-  .dot {
-    display: inline-block;
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--accent);
-    margin-right: 8px;
-    animation: pulse 2s ease-in-out infinite;
-  }
-
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.3; }
-  }
-
-  .btn-set-current {
-    font-family: 'Space Mono', monospace;
-    font-size: 10px;
-    padding: 3px 10px;
-    border-radius: 8px;
-    border: 1px solid rgba(200,162,106,0.4);
-    background: rgba(200,162,106,0.1);
-    color: var(--accent);
-    cursor: pointer;
-    letter-spacing: 1px;
-    transition: all 0.15s;
-    white-space: nowrap;
-  }
-  .btn-set-current:hover {
-    background: var(--accent);
-    color: var(--bg);
-    border-color: var(--accent);
-  }
-
   /* Lotto */
   .btn-lotto {
     width: 100%;
@@ -394,8 +137,10 @@
     font-size: 15px;
   }
 
-  .btn-lotto:hover {
-    background: linear-gradient(135deg, #d4b07a 0%, #f0d09a 100%);
+  @media (hover: hover) {
+    .btn-lotto:hover {
+      background: linear-gradient(135deg, #d4b07a 0%, #f0d09a 100%);
+    }
   }
 
   .lotto-result {
@@ -471,18 +216,6 @@
     text-shadow: 0 1px 2px rgba(0,0,0,0.3);
     border: 2px dashed var(--accent);
   }
-
-  .btn-lunch {
-    width: 100%;
-    margin-bottom: 16px;
-    background: var(--surface2);
-    color: var(--accent2);
-    border: 1px solid var(--border);
-    font-size: 15px;
-  }
-
-  .btn-lunch:hover { border-color: var(--accent); background: rgba(200,162,106,0.1); }
-  .btn-lunch:disabled { opacity: 0.5; cursor: not-allowed; }
 
   /* Lunch modal */
   .modal-overlay {
@@ -637,8 +370,33 @@
   transition: transform 0.2s;
 }
 
-#lunchBoard .lunch-modal-image:hover {
-  transform: scale(1.02);
+@media (hover: hover) {
+  #lunchBoard .lunch-modal-image:hover {
+    transform: scale(1.02);
+  }
+}
+
+/* 메뉴가 도착해도 아래 버튼이 크게 밀리지 않도록 카드 높이만큼 자리를 잡는다. */
+.lunch-board-loading {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0;
+  aspect-ratio: 4 / 3;
+}
+
+.lunch-channel-link {
+  display: block;
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: var(--accent2);
+}
+
+.btn-retry {
+  background: var(--surface2);
+  color: var(--accent2);
+  border: 1px solid var(--border);
 }
 
 .section-indicator {
@@ -703,6 +461,11 @@
 
   #lunchBoard::-webkit-scrollbar {
     display: none;
+  }
+
+  .lunch-board-loading {
+    flex: 0 0 100%;
+    aspect-ratio: 2 / 3;
   }
 
   #lunchBoard .lunch-modal-item {

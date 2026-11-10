@@ -17,12 +17,7 @@
       <p class="subtitle">LUNCH & LUCK</p>
     </header>
 
-    <div id="loading" class="loading">
-      <div class="spinner"></div>
-      LOADING...
-    </div>
-
-    <div id="app" style="display:none">
+    <div id="app">
       <div class="section-header">
         <span class="section-title">오늘의 메뉴</span>
         <span class="section-indicator" id="lunchBoardIndicator"></span>
@@ -81,6 +76,9 @@
     var lunchItems = [];
 
     async function loadLunchMenus() {
+      document.getElementById('lunchBoard').innerHTML =
+        '<div class="loading lunch-board-loading"><div class="spinner"></div>LOADING...</div>';
+      updateLunchBoardIndicator();
       try {
         var response = await fetch('/api/lunch', { cache: 'no-store' });
         if (!response.ok) throw new Error('HTTP ' + response.status);
@@ -95,6 +93,18 @@
       }
     }
 
+    function renderLunchImage(item) {
+      return '<img class="lunch-modal-image" src="' + escapeHtml(item.imageUrl) + '" alt="' + escapeHtml(item.name) + ' 식단표">';
+    }
+
+    function renderLunchError(item) {
+      var channelLink = item.channelUrl
+        ? '<a class="lunch-channel-link" href="' + escapeHtml(item.channelUrl) + '" target="_blank" rel="noopener">카카오 채널에서 보기</a>'
+        : '';
+      return '<div class="lunch-sub">' + escapeHtml(item.message) + '</div>' + channelLink +
+             '<button type="button" class="btn btn-retry" onclick="loadLunchMenus()">다시 시도</button>';
+    }
+
     function renderLunchBoard(items) {
       lunchItems = items;
       var lunchBoard = document.getElementById('lunchBoard');
@@ -104,9 +114,9 @@
       }
       var viewableIndex = 0;
       lunchBoard.innerHTML = lunchItems.map(function (item) {
-        var clickAttrs = item.error ? '' : ' onclick="showLunchModal(' + (viewableIndex++) + ')" style="cursor:pointer;"';
-        var errorContent = item.error ? '<div class="lunch-sub">' + escapeHtml(item.message) + '</div>' : '';
-        var imgContent = item.imageUrl ? '<img class="lunch-modal-image" src="' + escapeHtml(item.imageUrl) + '">' : '';
+        var clickAttrs = item.error ? '' : ' role="button" tabindex="0" onclick="showLunchModal(' + (viewableIndex++) + ')" style="cursor:pointer;"';
+        var errorContent = item.error ? renderLunchError(item) : '';
+        var imgContent = item.imageUrl ? renderLunchImage(item) : '';
         
         return '<div class="lunch-modal-item"' + clickAttrs + '>' +
                '<div class="lunch-name">' + escapeHtml(item.name) + '</div>' +
@@ -138,7 +148,7 @@
       }).map(function (item) {
         return '<div class="lunch-modal-item">' +
                '<div class="lunch-name">' + escapeHtml(item.name) + '</div>' +
-               '<img class="lunch-modal-image" src="' + escapeHtml(item.imageUrl) + '">' +
+               renderLunchImage(item) +
                '</div>';
       }).join('');
       modal.classList.add('active');
@@ -183,6 +193,15 @@
 
     window.addEventListener('popstate', hideLunchModal);
 
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape' && document.getElementById('lunchModal').classList.contains('active')) {
+        closeLunchModal();
+      } else if ((event.key === 'Enter' || event.key === ' ') && event.target.matches('[role="button"]')) {
+        event.preventDefault();
+        event.target.click();
+      }
+    });
+
     // 4. 로또 로직
     function generateLotto() {
       var nums = [];
@@ -212,15 +231,7 @@
     }
 
     // 5. 초기화
-    async function init() {
-      await loadLunchMenus();
-      document.getElementById('loading').style.display = 'none';
-      document.getElementById('app').style.display = 'block';
-    }
-
-    init().catch(function (error) {
-      document.getElementById('loading').innerHTML = '<div style="color:#e74c3c;">초기화 실패</div>';
-    });
+    loadLunchMenus();
   </script>
 </body>
 </html>

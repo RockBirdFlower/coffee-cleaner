@@ -11,15 +11,16 @@ This project is deployed on Vercel as a static site with one cached Node.js API 
 
 - Framework Preset: `Other`
 - Root Directory: project root
-- Build Command: `npm run build`
+- Build Command: leave empty (this project has no build step)
 - Output Directory: leave empty
 - Install Command: `npm install`
 
-## Required Vercel environment variables
+## Local development
 
-- `APP_PASSWORD`
+- `npm run dev` serves the site and the real `api/lunch.js` at `http://127.0.0.1:3200`
+- `npm run dev -- --lan` also opens it to devices on the same network, for testing on a phone
+- the local server does not reproduce Vercel's CDN cache
 
 ## Notes
 
-- the build step only injects the password hash into `index.html`
 - GitHub Pages workflow was removed, so Vercel is the only deployment path

@@ -2,5 +2,7 @@
   "name": "coffee-cleaner",
   "private": true,
   "version": "1.0.0",
-  "scripts": {}
+  "scripts": {
+    "dev": "node scripts/dev-server.js"
+  }
 }
