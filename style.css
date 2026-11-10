@@ -21,7 +21,7 @@ body {
 body.modal-open { overflow: hidden; }
 
 .container {
-  max-width: 520px;
+  max-width: 860px;
   margin: 0 auto;
 }
 
@@ -284,6 +284,73 @@ h1 {
 }
 
 .lunch-modal-content .lunch-modal-item { text-align: center; }
+
+/* PC: 식단표 두 개를 화면 높이에 맞춰 크게 놓고 로또는 오른쪽 열로 옮긴다. */
+@media (min-width: 1024px) {
+  :root {
+    --menu-height: max(560px, calc(100vh - 164px));
+    /* 식단표 비율(약 1 : 1.414) 두 장과 사이 간격의 폭 */
+    --menu-board-width: calc(var(--menu-height) * 1.414 + 20px);
+  }
+
+  body { padding: 24px 40px; }
+
+  .container { max-width: calc(var(--menu-board-width) + 32px + 300px); }
+
+  header { padding: 8px 0 16px; }
+
+  h1 { font-size: 28px; }
+
+  .today-date { font-size: 16px; }
+
+  #app {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 300px;
+    grid-template-rows: auto 1fr;
+    column-gap: 32px;
+    align-items: start;
+  }
+
+  #lunchBoard {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    gap: 20px;
+    margin-bottom: 0;
+  }
+
+  .lunch-name { font-size: 17px; }
+
+  .loading {
+    aspect-ratio: auto;
+    height: var(--menu-height);
+  }
+
+  .btn-lotto {
+    grid-column: 2;
+    grid-row: 1;
+    margin-top: 32px;
+  }
+
+  .lotto-result {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  .lotto-numbers {
+    gap: 6px;
+    flex-wrap: nowrap;
+  }
+
+  .lotto-ball,
+  .lotto-bonus-ball {
+    width: 38px;
+    height: 38px;
+    font-size: 14px;
+  }
+
+  /* 메인 화면보다 크게 보여 주는 모달: 원본에 가까운 크기로 표시하고 세로로 스크롤한다. */
+  .lunch-modal-content { max-width: 2004px; }
+}
 
 /* 접은 폴드, 일반 폰: 식단표를 전체 폭으로 한 식당씩 넘겨 본다. 펼친 화면은 2열과 나란히 보기를 유지한다. */
 @media (max-width: 640px) {
