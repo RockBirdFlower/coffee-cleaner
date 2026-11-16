@@ -169,6 +169,78 @@ h1 {
   font-weight: 700;
 }
 
+/* 식당 이름과 좋아요를 한 줄에 둔다. 좋아요가 없을 때도 높이가 같아 식단표가 밀리지 않는다. */
+.lunch-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  margin-bottom: 8px;
+}
+
+.lunch-head .lunch-name { margin-bottom: 0; }
+
+.is-error .lunch-head { justify-content: center; }
+
+.like-slot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.like-badge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #1a1300;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.like-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 4px 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.like-btn svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linejoin: round;
+}
+
+.like-btn.is-liked {
+  border-color: #f06a6a;
+  color: #f06a6a;
+}
+
+.like-btn.is-liked svg { fill: currentColor; }
+
+.like-btn:disabled { cursor: default; }
+
+/* 오늘 이미 다른 식당을 골랐으면 나머지 버튼은 흐리게 둔다. */
+.like-btn:disabled:not(.is-liked) { opacity: 0.55; }
+
+@media (hover: hover) {
+  .like-btn:not(:disabled):hover { border-color: var(--text-muted); }
+}
+
 .lunch-sub {
   margin-bottom: 12px;
   font-size: 13px;
@@ -183,6 +255,7 @@ h1 {
 
 #lunchBoard .lunch-modal-image {
   height: auto;
+  cursor: pointer;
   filter: brightness(0.95);
   transition: filter 0.15s;
 }

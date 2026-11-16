@@ -7,6 +7,9 @@ This project is deployed on Vercel as a static site with one cached Node.js API 
 - `api/lunch.js` fetches Kakao profile metadata for lunch images
 - the lunch API uses Vercel cache headers with a 15-minute lifetime, so a new day's menu appears without Firebase or cron
 
+- `api/likes.js` keeps today's like counts in Abacus (`abacus.jasoncameron.dev`), a free counter service that needs no account or key
+- like counts use one counter per restaurant per day; local and preview runs use a separate `-dev` namespace so they never touch production counts
+
 ## Vercel Project Settings
 
 - Framework Preset: `Other`

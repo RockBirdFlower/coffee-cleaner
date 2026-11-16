@@ -9,7 +9,7 @@ const path = require("path");
 const ROOT = path.join(__dirname, "..");
 const PORT = 3200;
 const LAN = process.argv.includes("--lan");
-const API_ROUTES = ["/api/lunch", "/api/weather"];
+const API_ROUTES = ["/api/lunch", "/api/weather", "/api/likes"];
 const STATIC_FILES = {
   "/": ["index.html", "text/html; charset=utf-8"],
   "/index.html": ["index.html", "text/html; charset=utf-8"],
@@ -34,6 +34,21 @@ function withVercelHelpers(res) {
   return res;
 }
 
+// Vercel은 JSON 본문을 req.body로 넘겨 주므로 같은 모양을 만들어 준다.
+function readJsonBody(req) {
+  return new Promise((resolve) => {
+    let raw = "";
+    req.on("data", (chunk) => (raw += chunk));
+    req.on("end", () => {
+      try {
+        resolve(raw ? JSON.parse(raw) : {});
+      } catch (error) {
+        resolve({});
+      }
+    });
+  });
+}
+
 function lanAddresses() {
   return Object.values(os.networkInterfaces())
     .flat()
@@ -49,6 +64,7 @@ http
       // 서버를 재시작하지 않아도 api 파일 수정이 반영되도록 매번 다시 불러온다.
       const handlerPath = path.join(ROOT, pathname + ".js");
       delete require.cache[require.resolve(handlerPath)];
+      if (req.method === "POST") req.body = await readJsonBody(req);
       await require(handlerPath)(req, withVercelHelpers(res));
       return;
     }

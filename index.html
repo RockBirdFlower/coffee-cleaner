@@ -59,7 +59,7 @@
   </div>
 
   <script>
-    // 1. 화면 갱신: 날짜가 바뀌면 전체 새로고침, 같은 날이면 메뉴와 날씨만 다시 받는다.
+    // 1. 화면 갱신: 날짜가 바뀌면 전체 새로고침, 같은 날이면 메뉴·날씨·좋아요만 다시 받는다.
     var MENU_RECHECK_ON_RETURN_MS = 60000; // 화면 복귀·포커스 때의 최소 간격
     var MENU_RECHECK_WHILE_OPEN_MS = 15 * 60000; // 계속 켜 둔 화면의 주기 (서버 캐시와 같은 길이)
 
@@ -93,6 +93,7 @@
       }
       refreshLunchMenus(minInterval);
       loadWeather(minInterval);
+      loadLikes(minInterval);
     }
 
     document.getElementById('todayDate').textContent = new Intl.DateTimeFormat('ko-KR', {
@@ -173,8 +174,8 @@
       }
     }
 
-    function renderLunchImage(item) {
-      return '<img class="lunch-modal-image" src="' + escapeHtml(item.imageUrl) + '" alt="' + escapeHtml(item.name) + ' 식단표">';
+    function renderLunchImage(item, extraAttrs) {
+      return '<img class="lunch-modal-image" src="' + escapeHtml(item.imageUrl) + '" alt="' + escapeHtml(item.name) + ' 식단표"' + (extraAttrs || '') + '>';
     }
 
     function renderLunchError(item) {
@@ -194,14 +195,122 @@
       }
       var viewableIndex = 0;
       lunchBoard.innerHTML = lunchItems.map(function (item) {
-        var clickAttrs = item.error ? '' : ' role="button" tabindex="0" onclick="showLunchModal(' + (viewableIndex++) + ')" style="cursor:pointer;"';
-        var errorContent = item.error ? renderLunchError(item) : '';
-        var imgContent = item.imageUrl ? renderLunchImage(item) : '';
-        
-        return '<div class="lunch-modal-item' + (item.error ? ' is-error' : '') + '"' + clickAttrs + '>' +
-               '<div class="lunch-name">' + escapeHtml(item.name) + '</div>' +
-               errorContent + imgContent + '</div>';
+        // 좋아요 버튼이 카드 안에 있으므로 크게 보기는 카드 전체가 아니라 이미지에만 건다.
+        var content = item.error
+          ? renderLunchError(item)
+          : renderLunchImage(item, ' role="button" tabindex="0" onclick="showLunchModal(' + (viewableIndex++) + ')"');
+        var likeSlot = item.error ? '' : '<span class="like-slot" data-like-id="' + escapeHtml(item.id) + '"></span>';
+
+        return '<div class="lunch-modal-item' + (item.error ? ' is-error' : '') + '">' +
+               '<div class="lunch-head"><div class="lunch-name">' + escapeHtml(item.name) + '</div>' + likeSlot + '</div>' +
+               content + '</div>';
       }).join('');
+      renderLikes();
+    }
+
+    // 3-1. 좋아요: 하루에 한 식당만, 한 번 누를 수 있다. 저장소가 숫자를 내릴 수 없어 취소는 없다.
+    var LIKE_STORAGE_KEY = 'lunch-like';
+    var HEART_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>';
+    var likeCounts = null; // 한 번도 받지 못했으면 좋아요 영역을 그리지 않는다.
+    var likeDate = '';
+    var likeSending = false;
+    var lastLikesFetchAt = 0;
+    var myLikeFallback = null; // 저장소를 못 쓰는 브라우저에서도 화면을 연 동안은 한 번으로 막는다.
+
+    function getMyLike() {
+      var saved = myLikeFallback;
+      try {
+        saved = JSON.parse(localStorage.getItem(LIKE_STORAGE_KEY)) || saved;
+      } catch (error) {
+        // 저장소를 못 쓰면 이번 화면의 기록만 본다.
+      }
+      return saved && saved.date === likeDate ? saved.id : null;
+    }
+
+    function saveMyLike(id) {
+      myLikeFallback = { date: likeDate, id: id };
+      try {
+        localStorage.setItem(LIKE_STORAGE_KEY, JSON.stringify(myLikeFallback));
+      } catch (error) {
+        // 저장하지 못해도 이번 화면에서는 myLikeFallback으로 막힌다.
+      }
+    }
+
+    function applyLikes(payload) {
+      // 같은 날에는 숫자가 줄지 않으므로, 늦게 도착한 예전 응답이 방금 누른 좋아요를 지우지 않게 큰 값을 남긴다.
+      var sameDay = likeCounts && payload.date === likeDate;
+      var counts = {};
+      Object.keys(payload.counts).forEach(function (id) {
+        counts[id] = sameDay ? Math.max(payload.counts[id], likeCounts[id] || 0) : payload.counts[id];
+      });
+      likeCounts = counts;
+      likeDate = payload.date;
+      renderLikes();
+    }
+
+    function renderLikes() {
+      var myLike = getMyLike();
+      var best = 0;
+      var leaders = [];
+      Object.keys(likeCounts || {}).forEach(function (id) {
+        if (likeCounts[id] > best) {
+          best = likeCounts[id];
+          leaders = [id];
+        } else if (likeCounts[id] === best) {
+          leaders.push(id);
+        }
+      });
+
+      document.querySelectorAll('.like-slot').forEach(function (slot) {
+        var id = slot.getAttribute('data-like-id');
+        if (!likeCounts || likeCounts[id] == null) {
+          slot.innerHTML = '';
+          return;
+        }
+        var liked = myLike === id;
+        var badge = best > 0 && leaders.length === 1 && leaders[0] === id ? '<span class="like-badge">인기</span>' : '';
+        slot.innerHTML = badge +
+          '<button type="button" class="like-btn' + (liked ? ' is-liked' : '') + '"' +
+          ' aria-pressed="' + liked + '" aria-label="좋아요 ' + likeCounts[id] + '개"' +
+          (myLike || likeSending ? ' disabled' : '') +
+          ' onclick="sendLike(\'' + escapeHtml(id) + '\')">' + HEART_ICON + '<span>' + likeCounts[id] + '</span></button>';
+      });
+    }
+
+    async function loadLikes(minInterval) {
+      if (Date.now() - lastLikesFetchAt < (minInterval || 0)) return;
+      lastLikesFetchAt = Date.now();
+      try {
+        var response = await fetch('/api/likes');
+        if (!response.ok) return;
+        var payload = await response.json();
+        if (payload.ok) applyLikes(payload);
+      } catch (error) {
+        // 보이던 숫자 유지, 처음부터 실패했으면 숨긴 채 둔다.
+      }
+    }
+
+    async function sendLike(id) {
+      if (likeSending || getMyLike()) return;
+      likeSending = true;
+      renderLikes();
+      try {
+        var response = await fetch('/api/likes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: id })
+        });
+        var payload = response.ok ? await response.json() : null;
+        if (payload && payload.ok) {
+          likeDate = payload.date;
+          saveMyLike(id);
+          applyLikes(payload);
+        }
+      } catch (error) {
+        // 실패하면 다시 누를 수 있게 버튼만 되돌린다.
+      }
+      likeSending = false;
+      renderLikes();
     }
 
     var lunchModalHistoryPushed = false;
@@ -413,6 +522,7 @@
 
     // 7. 초기화
     loadWeather();
+    loadLikes();
     loadLunchMenus();
   </script>
 </body>
