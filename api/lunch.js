@@ -101,7 +101,7 @@ module.exports = async function handler(req, res) {
     // 실패 결과가 저장되면 다시 시도해도 캐시가 끝날 때까지 오류만 보인다.
     res.setHeader(
       "Cache-Control",
-      items.some((item) => item.error) ? "no-store" : "public, max-age=0, s-maxage=300, stale-while-revalidate=60"
+      items.some((item) => item.error) ? "no-store" : "public, max-age=0, s-maxage=900,stale-while-revalidate=60"
     );
     res.status(200).json({
       ok: true,

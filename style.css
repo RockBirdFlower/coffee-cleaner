@@ -45,16 +45,84 @@ h1 {
   color: var(--text-muted);
 }
 
+/* Weather: 항목 수(3~4개)가 달라져도 같은 폭으로 나뉘는 한 줄 카드 */
 .weather-line {
+  display: inline-grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  margin: 0 0 16px;
+  padding: 10px 6px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+}
+
+.weather-line[hidden] { display: none; }
+
+.weather-cell {
   display: flex;
-  flex-wrap: wrap;
-  gap: 4px 14px;
-  margin: -8px 0 16px;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 0 20px;
+}
+
+.weather-cell + .weather-cell { border-left: 1px solid var(--border); }
+
+.weather-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.weather-value {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 16px;
+  white-space: nowrap;
+}
+
+.weather-value b {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.weather-text {
   font-size: 13px;
   color: var(--text-muted);
 }
 
-.weather-line[hidden] { display: none; }
+.weather-icon {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: var(--text-muted);
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.weather-icon .wx-sun { stroke: var(--accent); }
+.weather-icon .wx-rain { stroke: #6aa9ff; }
+.weather-icon .wx-snow { fill: var(--text); stroke: none; }
+/* 해 앞에 겹치는 구름이 해의 선을 가리도록 카드 배경색으로 채운다. */
+.weather-icon .wx-cover { fill: var(--surface); }
+
+.weather-dot {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+
+.weather-dot.is-good { background: #5aa9ff; }
+.weather-dot.is-fair { background: #5cc98a; }
+.weather-dot.is-bad { background: #f5a04a; }
+.weather-dot.is-worst { background: #f06a6a; }
 
 .weekend-notice {
   margin: -8px 0 16px;
@@ -434,6 +502,26 @@ h1 {
   h1 { font-size: 20px; }
 
   .today-date { font-size: 13px; }
+
+  /* 좁은 화면은 전체 폭을 쓰고, 날씨 글자는 아이콘으로 대신한다(읽기 프로그램에는 남긴다). */
+  .weather-line {
+    display: grid;
+    /* "매우 나쁨"처럼 긴 값이 옆 칸에 붙지 않도록 남는 폭만 고르게 나눈다. */
+    grid-auto-columns: auto;
+    padding: 9px 2px;
+  }
+
+  .weather-cell { padding: 0 4px; }
+
+  .weather-value { font-size: 15px; }
+
+  .weather-text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
 
   /* 식단표 아래까지 스크롤하지 않도록 버튼은 상단에, 결과는 식단표 위에 둔다. */
   #app {

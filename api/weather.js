@@ -38,6 +38,18 @@ function describeWeather(code) {
   return "";
 }
 
+// 화면에 그릴 아이콘 이름. describeWeather와 같은 구간으로 나눈다.
+function weatherIcon(code) {
+  if (code === 0 || code === 1) return "sun";
+  if (code === 2) return "cloud-sun";
+  if (code === 3) return "cloud";
+  if (code === 45 || code === 48) return "fog";
+  if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) return "rain";
+  if ((code >= 71 && code <= 77) || code === 85 || code === 86) return "snow";
+  if (code >= 95) return "storm";
+  return "";
+}
+
 // 환경부 예보 등급 기준. 미세먼지와 초미세먼지 중 나쁜 쪽을 따른다.
 function dustGrade(pm10, pm25) {
   const grades = ["좋음", "보통", "나쁨", "매우 나쁨"];
@@ -62,6 +74,7 @@ function buildWeather(weather) {
     now: {
       temperature: Math.round(weather.current.temperature_2m),
       text: describeWeather(weather.current.weather_code),
+      icon: weatherIcon(weather.current.weather_code),
     },
     rain: {
       label: beforeLunch ? "점심" : currentHour >= WORK_END_HOUR ? "지금" : "오후",
@@ -74,6 +87,7 @@ function buildWeather(weather) {
     result.lunch = {
       temperature: Math.round(weather.hourly.temperature_2m[lunchIndex]),
       text: describeWeather(weather.hourly.weather_code[lunchIndex]),
+      icon: weatherIcon(weather.hourly.weather_code[lunchIndex]),
     };
   }
 

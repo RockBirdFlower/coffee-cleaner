@@ -21,7 +21,7 @@
       <h1>오늘의 점심</h1>
       <p class="today-date" id="todayDate"></p>
     </header>
-    <p class="weather-line" id="weatherLine" hidden></p>
+    <div class="weather-line" id="weatherLine" hidden></div>
     <p class="weekend-notice" id="weekendNotice" hidden>주말에는 이전 메뉴가 표시될 수 있습니다.</p>
 
     <div id="app">
@@ -59,11 +59,19 @@
   </div>
 
   <script>
-    // 1. 날짜 변경 감지 (화면 복귀, 포커스, 뒤로가기 복원, 켜 둔 화면은 1분 주기)
-    document.addEventListener('visibilitychange', checkAndReloadIfStale);
-    window.addEventListener('focus', checkAndReloadIfStale);
-    window.addEventListener('pageshow', checkAndReloadIfStale);
-    setInterval(checkAndReloadIfStale, 60000);
+    // 1. 화면 갱신: 날짜가 바뀌면 전체 새로고침, 같은 날이면 메뉴와 날씨만 다시 받는다.
+    var MENU_RECHECK_ON_RETURN_MS = 60000; // 화면 복귀·포커스 때의 최소 간격
+    var MENU_RECHECK_WHILE_OPEN_MS = 15 * 60000; // 계속 켜 둔 화면의 주기 (서버 캐시와 같은 길이)
+
+    function refreshOnReturn() {
+      refreshScreen(MENU_RECHECK_ON_RETURN_MS);
+    }
+
+    document.addEventListener('visibilitychange', refreshOnReturn);
+    window.addEventListener('focus', refreshOnReturn);
+    window.addEventListener('pageshow', refreshOnReturn);
+    window.addEventListener('online', refreshOnReturn);
+    setInterval(function () { refreshScreen(MENU_RECHECK_WHILE_OPEN_MS); }, 60000);
 
     // 2. 날짜 관련 유틸리티
     function getSeoulDateKey(date) {
@@ -76,10 +84,15 @@
     // 다른 탭이 먼저 열려도 오래된 탭이 새로고침된다.
     var pageLoadDateKey = getSeoulDateKey(new Date());
 
-    function checkAndReloadIfStale() {
-      if (document.visibilityState !== 'visible') return;
-      if (getSeoulDateKey(new Date()) === pageLoadDateKey) return;
-      window.location.replace(window.location.pathname + '?refresh=' + Date.now());
+    function refreshScreen(minInterval) {
+      // 연결이 끊긴 채 새로고침하면 브라우저 오류 화면으로 바뀌므로 연결이 돌아올 때까지 미룬다.
+      if (document.visibilityState !== 'visible' || !navigator.onLine) return;
+      if (getSeoulDateKey(new Date()) !== pageLoadDateKey) {
+        window.location.replace(window.location.pathname + '?refresh=' + Date.now());
+        return;
+      }
+      refreshLunchMenus(minInterval);
+      loadWeather(minInterval);
     }
 
     document.getElementById('todayDate').textContent = new Intl.DateTimeFormat('ko-KR', {
@@ -100,8 +113,50 @@
 
     // 3. 점심 메뉴 로직
     var lunchItems = [];
+    var lastLunchFetchAt = 0;
+    var pendingLunchItems = null;
+
+    function isLunchModalOpen() {
+      return document.getElementById('lunchModal').classList.contains('active');
+    }
+
+    function hasLunchError(items) {
+      return items.some(function (item) { return item.error; });
+    }
+
+    function getLunchSignature(items) {
+      return items.map(function (item) {
+        return item.id + '|' + (item.error ? 'error' : item.imageUrl);
+      }).join(',');
+    }
+
+    function applyRefreshedLunchItems(items) {
+      if (getLunchSignature(items) !== getLunchSignature(lunchItems)) renderLunchBoard(items);
+    }
+
+    // 열려 있는 화면의 메뉴만 조용히 다시 받는다. 바뀐 것이 없으면 화면을 건드리지 않는다.
+    async function refreshLunchMenus(minInterval) {
+      if (Date.now() - lastLunchFetchAt < minInterval) return;
+      lastLunchFetchAt = Date.now();
+      try {
+        var response = await fetch('/api/lunch', { cache: 'no-store' });
+        if (!response.ok) return;
+        var items = (await response.json()).items || [];
+        // 잘 보이던 식단표를 일시적인 오류나 빈 응답으로 덮지 않는다.
+        if (!items.length || (hasLunchError(items) && !hasLunchError(lunchItems))) return;
+        // 크게 보는 중에는 바꾸지 않고, 닫을 때 반영한다.
+        if (isLunchModalOpen()) {
+          pendingLunchItems = items;
+          return;
+        }
+        applyRefreshedLunchItems(items);
+      } catch (error) {
+        // 기존 화면 유지
+      }
+    }
 
     async function loadLunchMenus() {
+      lastLunchFetchAt = Date.now();
       document.getElementById('lunchBoard').innerHTML =
         '<div class="loading"><div class="spinner"></div>메뉴를 불러오는 중</div>';
       try {
@@ -183,6 +238,11 @@
       document.body.classList.remove('modal-open');
       // 키보드 사용자가 모달을 연 카드로 돌아오게 한다.
       if (wasOpen && lunchModalOpener && lunchModalOpener.focus) lunchModalOpener.focus();
+      if (pendingLunchItems) {
+        var refreshedItems = pendingLunchItems;
+        pendingLunchItems = null;
+        applyRefreshedLunchItems(refreshedItems);
+      }
     }
 
     function closeLunchModal() {
@@ -288,22 +348,63 @@
     }
 
     // 6. 날씨: 부가 정보라서 실패하면 줄을 숨긴 채 둔다.
-    async function loadWeather() {
+    // 비·눈 표시가 아래에 붙는 아이콘은 구름을 위로 올려 그린다.
+    var CLOUD_HIGH = '<path d="M7 15a4 4 0 0 1-.5-7.97A6 6 0 0 1 18 8a3.5 3.5 0 0 1-.5 7H7z"/>';
+    var WEATHER_ICONS = {
+      sun: '<g class="wx-sun"><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4"/></g>',
+      'cloud-sun': '<g class="wx-sun"><circle cx="16.5" cy="7.5" r="3.2"/><path d="M16.5 1.8v1.4M22.2 7.5h-1.4M20.5 3.5l-1 1"/></g>' +
+        '<path class="wx-cover" d="M6.5 19a3.5 3.5 0 0 1-.4-6.98A5.2 5.2 0 0 1 16 12.8a3 3 0 0 1-.4 6.2H6.5z"/>',
+      cloud: '<path d="M7 18a4 4 0 0 1-.5-7.97A6 6 0 0 1 18 11a3.5 3.5 0 0 1-.5 7H7z"/>',
+      fog: CLOUD_HIGH + '<path d="M5 18.5h14M8 21.5h8"/>',
+      rain: CLOUD_HIGH + '<path class="wx-rain" d="M8 18l-1 3M12 18l-1 3M16 18l-1 3"/>',
+      snow: CLOUD_HIGH + '<g class="wx-snow"><circle cx="8" cy="19.5" r="1"/><circle cx="12" cy="19.5" r="1"/><circle cx="16" cy="19.5" r="1"/></g>',
+      storm: CLOUD_HIGH + '<path class="wx-sun" d="M13 16.5l-2.5 3.5h3L12 23"/>',
+      drop: '<path class="wx-rain" d="M12 4c3 3.6 5 6.3 5 9a5 5 0 0 1-10 0c0-2.7 2-5.4 5-9z"/>'
+    };
+    var DUST_TONES = { '좋음': 'is-good', '보통': 'is-fair', '나쁨': 'is-bad', '매우 나쁨': 'is-worst' };
+
+    function weatherIcon(name) {
+      if (!WEATHER_ICONS[name]) return '';
+      return '<svg class="weather-icon" viewBox="0 0 24 24" aria-hidden="true">' + WEATHER_ICONS[name] + '</svg>';
+    }
+
+    function weatherCell(label, iconHtml, value, text) {
+      return '<div class="weather-cell">' +
+        '<span class="weather-label">' + escapeHtml(label) + '</span>' +
+        '<span class="weather-value">' + iconHtml + '<b>' + escapeHtml(value) + '</b>' +
+        (text ? '<span class="weather-text">' + escapeHtml(text) + '</span>' : '') +
+        '</span></div>';
+    }
+
+    var lastWeatherFetchAt = 0;
+    var lastWeatherHtml = '';
+
+    // 처음에는 간격 없이, 그 뒤로는 메뉴와 같은 간격으로 다시 받는다. 실패하면 보이던 값을 그대로 둔다.
+    async function loadWeather(minInterval) {
+      if (Date.now() - lastWeatherFetchAt < (minInterval || 0)) return;
+      lastWeatherFetchAt = Date.now();
       try {
         var response = await fetch('/api/weather');
         if (!response.ok) return;
         var weather = await response.json();
         if (!weather.ok) return;
 
-        var parts = [weather.location + ' ' + weather.now.temperature + '° ' + weather.now.text];
-        if (weather.lunch) parts.push('12시 ' + weather.lunch.temperature + '° ' + weather.lunch.text);
-        if (weather.rain.chance != null) parts.push(weather.rain.label + ' 강수 ' + weather.rain.chance + '%');
-        if (weather.dust) parts.push('미세먼지 ' + weather.dust);
+        var cells = [weatherCell(weather.location + ' 지금', weatherIcon(weather.now.icon), weather.now.temperature + '°', weather.now.text)];
+        if (weather.lunch) {
+          cells.push(weatherCell('12시', weatherIcon(weather.lunch.icon), weather.lunch.temperature + '°', weather.lunch.text));
+        }
+        if (weather.rain.chance != null) {
+          cells.push(weatherCell(weather.rain.label + ' 강수', weatherIcon('drop'), weather.rain.chance + '%', ''));
+        }
+        if (weather.dust) {
+          cells.push(weatherCell('미세먼지', '<span class="weather-dot ' + (DUST_TONES[weather.dust] || '') + '"></span>', weather.dust, ''));
+        }
 
+        var html = cells.join('');
+        if (html === lastWeatherHtml) return;
+        lastWeatherHtml = html;
         var line = document.getElementById('weatherLine');
-        line.innerHTML = parts.map(function (part) {
-          return '<span>' + escapeHtml(part.trim()) + '</span>';
-        }).join('');
+        line.innerHTML = html;
         line.hidden = false;
       } catch (error) {
         // 숨긴 상태 유지
