@@ -45,6 +45,17 @@ h1 {
   color: var(--text-muted);
 }
 
+/* 날짜 옆에 붙이되, 폭이 모자라면 글자 중간이 아니라 통째로 다음 줄로 넘긴다. */
+.visit-count {
+  display: inline-block;
+  margin-left: 10px;
+  padding-left: 10px;
+  border-left: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.visit-count[hidden] { display: none; }
+
 /* Weather: 항목 수(3~4개)가 달라져도 같은 폭으로 나뉘는 한 줄 카드 */
 .weather-line {
   display: inline-grid;
@@ -575,6 +586,14 @@ h1 {
   h1 { font-size: 20px; }
 
   .today-date { font-size: 13px; }
+
+  /* 제목 옆 버튼 때문에 폭이 좁아 방문자 수는 날짜 아래 줄에 둔다. */
+  .visit-count {
+    display: block;
+    margin: 2px 0 0;
+    padding-left: 0;
+    border-left: 0;
+  }
 
   /* 좁은 화면은 전체 폭을 쓰고, 날씨 글자는 아이콘으로 대신한다(읽기 프로그램에는 남긴다). */
   .weather-line {

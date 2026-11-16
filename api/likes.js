@@ -1,29 +1,10 @@
-// 식당별 오늘의 좋아요. 가입 없이 쓰는 숫자 세기 서비스 Abacus에 맡긴다.
+// 식당별 오늘의 좋아요.
 // Abacus는 관리 키 없이는 숫자를 내릴 수 없어 좋아요 취소는 지원하지 않는다.
 // 한 사람 한 번은 브라우저가 지키고, 서버는 숫자를 올리고 읽기만 한다.
+const { getSeoulDateKey, callAbacus } = require("./_abacus");
 
 // api/lunch.js의 식당 id와 같아야 한다.
 const RESTAURANT_IDS = ["dtech", "cookingtree"];
-const ABACUS_URL = "https://abacus.jasoncameron.dev";
-// 로컬 미리보기와 미리보기 배포에서 누른 좋아요가 운영 숫자에 섞이지 않게 이름을 나눈다.
-const NAMESPACE = process.env.VERCEL_ENV === "production" ? "coffee-cleaner-rw3x" : "coffee-cleaner-rw3x-dev";
-const TIMEOUT_MS = 5000;
-
-function getSeoulDateKey() {
-  return new Date(Date.now() + 9 * 60 * 60000).toISOString().slice(0, 10);
-}
-
-// 숫자 이름에 날짜를 넣어 매일 0부터 시작한다. 지난 숫자는 Abacus가 알아서 지운다.
-async function callAbacus(action, id, date) {
-  const response = await fetch(`${ABACUS_URL}/${action}/${NAMESPACE}/${id}-${date}`, {
-    cache: "no-store",
-    signal: AbortSignal.timeout(TIMEOUT_MS),
-  });
-  // 아직 아무도 누르지 않은 숫자는 없는 것으로 나온다.
-  if (action === "get" && response.status === 404) return 0;
-  if (!response.ok) throw new Error(`HTTP ${response.status}`);
-  return Number((await response.json()).value) || 0;
-}
 
 module.exports = async function handler(req, res) {
   if (req.method !== "GET" && req.method !== "POST") {

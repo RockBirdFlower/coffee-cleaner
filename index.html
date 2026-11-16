@@ -19,7 +19,7 @@
   <div class="container">
     <header>
       <h1>오늘의 점심</h1>
-      <p class="today-date" id="todayDate"></p>
+      <p class="today-date"><span id="todayDate"></span><span class="visit-count" id="visitCount" hidden></span></p>
     </header>
     <div class="weather-line" id="weatherLine" hidden></div>
     <p class="weekend-notice" id="weekendNotice" hidden>주말에는 이전 메뉴가 표시될 수 있습니다.</p>
@@ -59,7 +59,7 @@
   </div>
 
   <script>
-    // 1. 화면 갱신: 날짜가 바뀌면 전체 새로고침, 같은 날이면 메뉴·날씨·좋아요만 다시 받는다.
+    // 1. 화면 갱신: 날짜가 바뀌면 전체 새로고침, 같은 날이면 메뉴·날씨·좋아요·방문자 수만 다시 받는다.
     var MENU_RECHECK_ON_RETURN_MS = 60000; // 화면 복귀·포커스 때의 최소 간격
     var MENU_RECHECK_WHILE_OPEN_MS = 15 * 60000; // 계속 켜 둔 화면의 주기 (서버 캐시와 같은 길이)
 
@@ -94,6 +94,7 @@
       refreshLunchMenus(minInterval);
       loadWeather(minInterval);
       loadLikes(minInterval);
+      loadVisits(minInterval);
     }
 
     document.getElementById('todayDate').textContent = new Intl.DateTimeFormat('ko-KR', {
@@ -520,7 +521,46 @@
       }
     }
 
-    // 7. 초기화
+    // 7. 오늘 방문자 수: 브라우저마다 하루 한 번만 세고, 그 뒤로는 읽기만 한다.
+    var VISIT_STORAGE_KEY = 'lunch-visit';
+    var visitCount = 0;
+    var lastVisitsFetchAt = 0;
+
+    // 기록을 남길 수 없는 브라우저는 열 때마다 세어져 숫자가 부풀므로 세지 않는다.
+    function shouldCountVisit() {
+      try {
+        if (localStorage.getItem(VISIT_STORAGE_KEY) === pageLoadDateKey) return false;
+        localStorage.setItem(VISIT_STORAGE_KEY, localStorage.getItem(VISIT_STORAGE_KEY) || '');
+        return true;
+      } catch (error) {
+        return false;
+      }
+    }
+
+    async function loadVisits(minInterval) {
+      if (Date.now() - lastVisitsFetchAt < (minInterval || 0)) return;
+      lastVisitsFetchAt = Date.now();
+      try {
+        var counting = shouldCountVisit();
+        var response = await fetch('/api/visits', counting ? { method: 'POST' } : undefined);
+        if (!response.ok) return;
+        var payload = await response.json();
+        if (!payload.ok) return;
+        if (counting) localStorage.setItem(VISIT_STORAGE_KEY, payload.date);
+
+        // 같은 날에는 줄지 않으므로 잠깐 저장된 예전 응답이 와도 큰 값을 남긴다.
+        visitCount = Math.max(visitCount, payload.count);
+        if (!visitCount) return;
+        var label = document.getElementById('visitCount');
+        label.textContent = '오늘 ' + visitCount + '명 방문';
+        label.hidden = false;
+      } catch (error) {
+        // 보이던 숫자 유지, 처음부터 실패했으면 숨긴 채 둔다.
+      }
+    }
+
+    // 8. 초기화
+    loadVisits();
     loadWeather();
     loadLikes();
     loadLunchMenus();
