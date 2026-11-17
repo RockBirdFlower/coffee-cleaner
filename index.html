@@ -22,7 +22,7 @@
       <p class="today-date"><span id="todayDate"></span><span class="visit-count" id="visitCount" hidden></span></p>
     </header>
     <div class="weather-line" id="weatherLine" hidden></div>
-    <p class="weekend-notice" id="weekendNotice" hidden>주말에는 이전 메뉴가 표시될 수 있습니다.</p>
+    <p class="dayoff-notice" id="dayOffNotice" hidden>주말에는 이전 메뉴가 표시될 수 있습니다.</p>
 
     <div id="app">
       <div class="actions" id="lunchBoard"></div>
@@ -105,7 +105,22 @@
     }).format(new Date());
 
     var seoulWeekday = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Seoul', weekday: 'short' }).format(new Date());
-    document.getElementById('weekendNotice').hidden = seoulWeekday !== 'Sat' && seoulWeekday !== 'Sun';
+    document.getElementById('dayOffNotice').hidden = seoulWeekday !== 'Sat' && seoulWeekday !== 'Sun';
+
+    // 공휴일에도 같은 안내를 띄운다. 날짜가 바뀌면 화면을 새로 열므로 한 번만 확인한다.
+    async function loadHoliday() {
+      try {
+        var response = await fetch('/api/holiday');
+        if (!response.ok) return;
+        var payload = await response.json();
+        if (!payload.ok || !payload.holiday || payload.date !== pageLoadDateKey) return;
+        var notice = document.getElementById('dayOffNotice');
+        notice.textContent = '오늘은 공휴일(' + payload.holiday + ')이라 이전 메뉴가 표시될 수 있습니다.';
+        notice.hidden = false;
+      } catch (error) {
+        // 부가 안내라서 실패하면 띄우지 않는다.
+      }
+    }
 
     function escapeHtml(str) {
       var div = document.createElement('div');
@@ -570,6 +585,7 @@
 
     // 8. 초기화
     loadVisits();
+    loadHoliday();
     loadWeather();
     loadLikes();
     loadLunchMenus();

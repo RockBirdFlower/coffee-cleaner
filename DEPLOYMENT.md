@@ -9,6 +9,7 @@ This project is deployed on Vercel as a static site with one cached Node.js API 
 
 - `api/likes.js` keeps today's like counts in Abacus (`abacus.jasoncameron.dev`), a free counter service that needs no account or key
 - `api/visits.js` keeps today's visitor count the same way; `api/_abacus.js` is the shared helper (the leading underscore keeps Vercel from exposing it as a route)
+- `api/holiday.js` asks Nager.Date (`date.nager.at`, no key) whether today is a Korean public holiday, for the "previous menu may be shown" notice
 - counters are per day; local and preview runs use a separate `-dev` namespace so they never touch production counts
 
 ## Vercel Project Settings
