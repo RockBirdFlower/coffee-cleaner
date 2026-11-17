@@ -28,7 +28,7 @@ body.modal-open { overflow: hidden; }
 /* Header */
 header {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
   padding: 16px 0 20px;
@@ -40,18 +40,72 @@ h1 {
 }
 
 .today-date {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px 10px;
   font-size: 14px;
   font-weight: 500;
-  color: var(--text-muted);
+  color: var(--text);
 }
 
-/* 날짜 옆에 붙이되, 폭이 모자라면 글자 중간이 아니라 통째로 다음 줄로 넘긴다. */
-.visit-count {
-  display: inline-block;
-  margin-left: 10px;
-  padding-left: 10px;
-  border-left: 1px solid var(--border);
+.date-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   white-space: nowrap;
+}
+
+/* 날짜와 방문자 수 앞에 붙는 작은 선 아이콘 */
+.meta-icon {
+  flex: none;
+  width: 1.15em;
+  height: 1.15em;
+  fill: none;
+  stroke: var(--text-muted);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.weekday-chip {
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: rgba(245, 181, 68, 0.14);
+  color: var(--accent);
+  font-size: 0.86em;
+  font-weight: 700;
+}
+
+.weekday-chip.is-sat {
+  background: rgba(106, 169, 255, 0.14);
+  color: #6aa9ff;
+}
+
+.weekday-chip.is-red {
+  background: rgba(240, 106, 106, 0.14);
+  color: #f06a6a;
+}
+
+/* 방문자 수는 알약 모양 딱지로 보여 준다. 폭이 모자라면 통째로 다음 줄로 넘어간다. */
+.visit-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 11px 3px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: 0.86em;
+  white-space: nowrap;
+}
+
+.visit-count b {
+  color: var(--text);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
 .visit-count[hidden] { display: none; }
@@ -590,14 +644,13 @@ h1 {
 
   h1 { font-size: 20px; }
 
-  .today-date { font-size: 13px; }
-
   /* 제목 옆 버튼 때문에 폭이 좁아 방문자 수는 날짜 아래 줄에 둔다. */
-  .visit-count {
-    display: block;
-    margin: 2px 0 0;
-    padding-left: 0;
-    border-left: 0;
+  .today-date {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    margin-top: 4px;
+    font-size: 13px;
   }
 
   /* 좁은 화면은 날씨 글자를 아이콘으로 대신한다(읽기 프로그램에는 남긴다). */
