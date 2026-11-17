@@ -99,9 +99,10 @@ module.exports = async function handler(req, res) {
     const items = await Promise.all(LUNCH_SOURCES.map(fetchLunchItem));
 
     // 실패 결과가 저장되면 다시 시도해도 캐시가 끝날 때까지 오류만 보인다.
+    // stale-while-revalidate는 쓰지 않는다. 저장 기간이 끝난 뒤 처음 여는 사람이 옛 식단표를 받게 된다.
     res.setHeader(
       "Cache-Control",
-      items.some((item) => item.error) ? "no-store" : "public, max-age=0, s-maxage=900,stale-while-revalidate=60"
+      items.some((item) => item.error) ? "no-store" : "public, max-age=0, s-maxage=900"
     );
     res.status(200).json({
       ok: true,

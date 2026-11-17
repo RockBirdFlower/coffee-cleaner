@@ -77,7 +77,8 @@
     document.addEventListener('visibilitychange', refreshOnReturn);
     window.addEventListener('focus', refreshOnReturn);
     window.addEventListener('pageshow', refreshOnReturn);
-    window.addEventListener('online', refreshOnReturn);
+    // 연결이 돌아왔으면 최소 간격을 따지지 않고 바로 다시 받는다.
+    window.addEventListener('online', function () { refreshScreen(0); });
     setInterval(function () { refreshScreen(MENU_RECHECK_WHILE_OPEN_MS); }, 60000);
 
     // 2. 날짜 관련 유틸리티
@@ -112,6 +113,32 @@
     // 요일은 달력처럼 토요일은 파랑, 일요일과 공휴일은 빨강으로 칠한 딱지로 보여 준다.
     var seoulWeekday = formatSeoulDate('en-US', { weekday: 'short' });
     var weekdayChip = document.getElementById('todayWeekday');
+    // 막 깨어난 기기에서는 요청이 실패하거나 한참 멈춰 있을 수 있다.
+    // 오래 걸리면 끊고, 실패한 확인은 "확인했음"으로 남기지 않아 곧 다시 시도하게 한다.
+    var FETCH_TIMEOUT_MS = 10000;
+    var RETRY_DELAY_MS = 5000;
+    var RETRY_DELAY_MAX_MS = 60000;
+    var retryDelay = RETRY_DELAY_MS;
+    var retryTimer = null;
+
+    function fetchWithTimeout(url, options) {
+      var controller = new AbortController();
+      var timer = setTimeout(function () { controller.abort(); }, FETCH_TIMEOUT_MS);
+      options = options || {};
+      options.signal = controller.signal;
+      return fetch(url, options).finally(function () { clearTimeout(timer); });
+    }
+
+    // 실패가 이어지면 간격을 두 배씩 늘려 서버에 몰리지 않게 한다.
+    function retrySoon() {
+      if (retryTimer) return;
+      retryTimer = setTimeout(function () {
+        retryTimer = null;
+        refreshScreen(MENU_RECHECK_ON_RETURN_MS);
+      }, retryDelay);
+      retryDelay = Math.min(retryDelay * 2, RETRY_DELAY_MAX_MS);
+    }
+
     document.getElementById('todayDate').textContent = formatSeoulDate('ko-KR', { month: 'long', day: 'numeric' });
     weekdayChip.textContent = formatSeoulDate('ko-KR', { weekday: 'long' });
     if (seoulWeekday === 'Sat') weekdayChip.classList.add('is-sat');
@@ -168,11 +195,12 @@
       if (Date.now() - lastLunchFetchAt < minInterval) return;
       lastLunchFetchAt = Date.now();
       try {
-        var response = await fetch('/api/lunch', { cache: 'no-store' });
-        if (!response.ok) return;
+        var response = await fetchWithTimeout('/api/lunch', { cache: 'no-store' });
+        if (!response.ok) throw new Error('HTTP ' + response.status);
         var items = (await response.json()).items || [];
-        // 잘 보이던 식단표를 일시적인 오류나 빈 응답으로 덮지 않는다.
-        if (!items.length || (hasLunchError(items) && !hasLunchError(lunchItems))) return;
+        // 잘 보이던 식단표를 일시적인 오류나 빈 응답으로 덮지 않고, 실패로 보아 다시 시도한다.
+        if (!items.length || (hasLunchError(items) && !hasLunchError(lunchItems))) throw new Error('unusable menu');
+        retryDelay = RETRY_DELAY_MS;
         // 크게 보는 중에는 바꾸지 않고, 닫을 때 반영한다.
         if (isLunchModalOpen()) {
           pendingLunchItems = items;
@@ -180,7 +208,9 @@
         }
         applyRefreshedLunchItems(items);
       } catch (error) {
-        // 기존 화면 유지
+        // 기존 화면은 그대로 두고, 확인하지 못한 것으로 남겨 곧 다시 시도한다.
+        lastLunchFetchAt = 0;
+        retrySoon();
       }
     }
 
@@ -189,7 +219,7 @@
       document.getElementById('lunchBoard').innerHTML =
         '<div class="loading"><div class="spinner"></div>메뉴를 불러오는 중</div>';
       try {
-        var response = await fetch('/api/lunch', { cache: 'no-store' });
+        var response = await fetchWithTimeout('/api/lunch', { cache: 'no-store' });
         if (!response.ok) throw new Error('HTTP ' + response.status);
         var payload = await response.json();
         renderLunchBoard(payload.items || []);
@@ -310,12 +340,13 @@
       if (Date.now() - lastLikesFetchAt < (minInterval || 0)) return;
       lastLikesFetchAt = Date.now();
       try {
-        var response = await fetch('/api/likes');
-        if (!response.ok) return;
+        var response = await fetchWithTimeout('/api/likes');
+        if (!response.ok) throw new Error('HTTP ' + response.status);
         var payload = await response.json();
         if (payload.ok) applyLikes(payload);
       } catch (error) {
-        // 보이던 숫자 유지, 처음부터 실패했으면 숨긴 채 둔다.
+        // 보이던 숫자 유지, 처음부터 실패했으면 숨긴 채 둔다. 다음 확인 때 다시 받는다.
+        lastLikesFetchAt = 0;
       }
     }
 
@@ -523,8 +554,8 @@
       if (Date.now() - lastWeatherFetchAt < (minInterval || 0)) return;
       lastWeatherFetchAt = Date.now();
       try {
-        var response = await fetch('/api/weather');
-        if (!response.ok) return;
+        var response = await fetchWithTimeout('/api/weather');
+        if (!response.ok) throw new Error('HTTP ' + response.status);
         var weather = await response.json();
         if (!weather.ok) return;
 
@@ -552,7 +583,8 @@
         line.innerHTML = html;
         line.hidden = false;
       } catch (error) {
-        // 숨긴 상태 유지
+        // 보이던 값(없었으면 숨긴 상태)을 유지하고, 다음 확인 때 다시 받는다.
+        lastWeatherFetchAt = 0;
       }
     }
 
@@ -578,8 +610,8 @@
       lastVisitsFetchAt = Date.now();
       try {
         var counting = shouldCountVisit();
-        var response = await fetch('/api/visits', counting ? { method: 'POST' } : undefined);
-        if (!response.ok) return;
+        var response = await fetchWithTimeout('/api/visits', counting ? { method: 'POST' } : undefined);
+        if (!response.ok) throw new Error('HTTP ' + response.status);
         var payload = await response.json();
         if (!payload.ok) return;
         // 비교할 때와 같은 기기 날짜로 남겨야 기기 시계가 틀려도 다시 세지 않는다.
@@ -592,7 +624,8 @@
         label.innerHTML = VISIT_ICON + '<span>오늘 <b>' + visitCount + '</b>명 방문</span>';
         label.hidden = false;
       } catch (error) {
-        // 보이던 숫자 유지, 처음부터 실패했으면 숨긴 채 둔다.
+        // 보이던 숫자 유지, 처음부터 실패했으면 숨긴 채 둔다. 다음 확인 때 다시 받는다.
+        lastVisitsFetchAt = 0;
       }
     }
 
