@@ -30,6 +30,7 @@
     </header>
     <div class="weather-line" id="weatherLine" hidden></div>
     <p class="dayoff-notice" id="dayOffNotice" hidden>주말에는 이전 메뉴가 표시될 수 있습니다.</p>
+    <p class="dayoff-notice" id="staleNotice" hidden></p>
 
     <div id="app">
       <div class="actions" id="lunchBoard"></div>
@@ -81,38 +82,16 @@
     window.addEventListener('online', function () { refreshScreen(0); });
     setInterval(function () { refreshScreen(MENU_RECHECK_WHILE_OPEN_MS); }, 60000);
 
-    // 2. 날짜 관련 유틸리티
-    function getSeoulDateKey(date) {
-      var offset = 9 * 60;
-      var kstTime = new Date(date.getTime() + offset * 60000);
-      return kstTime.toISOString().slice(0, 10);
-    }
+    // 기기가 잠들었다 깨어날 때 복귀 신호 없이 타이머만 다시 도는 경우가 있다.
+    // 짧은 타이머가 한참 밀렸으면 깨어난 것으로 보고 복귀와 똑같이 확인한다.
+    var WAKE_CHECK_MS = 3000;
+    var lastWakeCheckAt = Date.now();
+    setInterval(function () {
+      var now = Date.now();
+      if (now - lastWakeCheckAt > WAKE_CHECK_MS * 5) refreshOnReturn();
+      lastWakeCheckAt = now;
+    }, WAKE_CHECK_MS);
 
-    // 탭끼리 공유되는 저장소가 아니라 이 페이지를 불러온 날짜와 비교해야
-    // 다른 탭이 먼저 열려도 오래된 탭이 새로고침된다.
-    var pageLoadDateKey = getSeoulDateKey(new Date());
-
-    function refreshScreen(minInterval) {
-      // 연결이 끊긴 채 새로고침하면 브라우저 오류 화면으로 바뀌므로 연결이 돌아올 때까지 미룬다.
-      if (document.visibilityState !== 'visible' || !navigator.onLine) return;
-      if (getSeoulDateKey(new Date()) !== pageLoadDateKey) {
-        window.location.replace(window.location.pathname + '?refresh=' + Date.now());
-        return;
-      }
-      refreshLunchMenus(minInterval);
-      loadWeather(minInterval);
-      loadLikes(minInterval);
-      loadVisits(minInterval);
-    }
-
-    function formatSeoulDate(locale, options) {
-      options.timeZone = 'Asia/Seoul';
-      return new Intl.DateTimeFormat(locale, options).format(new Date());
-    }
-
-    // 요일은 달력처럼 토요일은 파랑, 일요일과 공휴일은 빨강으로 칠한 딱지로 보여 준다.
-    var seoulWeekday = formatSeoulDate('en-US', { weekday: 'short' });
-    var weekdayChip = document.getElementById('todayWeekday');
     // 막 깨어난 기기에서는 요청이 실패하거나 한참 멈춰 있을 수 있다.
     // 오래 걸리면 끊고, 실패한 확인은 "확인했음"으로 남기지 않아 곧 다시 시도하게 한다.
     var FETCH_TIMEOUT_MS = 10000;
@@ -139,6 +118,93 @@
       retryDelay = Math.min(retryDelay * 2, RETRY_DELAY_MAX_MS);
     }
 
+    // 2. 날짜 관련 유틸리티
+    function getSeoulDateKey(date) {
+      var offset = 9 * 60;
+      var kstTime = new Date(date.getTime() + offset * 60000);
+      return kstTime.toISOString().slice(0, 10);
+    }
+
+    // 탭끼리 공유되는 저장소가 아니라 이 페이지를 불러온 날짜와 비교해야
+    // 다른 탭이 먼저 열려도 오래된 탭이 새로고침된다.
+    var pageLoadDateKey = getSeoulDateKey(new Date());
+
+    function refreshScreen(minInterval) {
+      // 연결이 끊긴 채 새로고침하면 브라우저 오류 화면으로 바뀌므로 연결이 돌아올 때까지 미룬다.
+      if (document.visibilityState !== 'visible' || !navigator.onLine) return;
+      if (getSeoulDateKey(new Date()) !== pageLoadDateKey) {
+        reloadForNewDay();
+        return;
+      }
+      refreshLunchMenus(minInterval);
+      retryBrokenLunchImages();
+      loadWeather(minInterval);
+      loadLikes(minInterval);
+      loadVisits(minInterval);
+    }
+
+    // 연결이 안 되는 채로 새로 열면 오류 화면으로 바뀌거나 어제 화면이 그대로 남는다.
+    // 작은 파일을 먼저 받아 보고, 받아질 때만 새로 연다.
+    async function checkConnection() {
+      var response = await fetchWithTimeout('/manifest.webmanifest?check=' + Date.now(), { cache: 'no-store' });
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+    }
+
+    var reloadingForNewDay = false;
+
+    async function reloadForNewDay() {
+      if (reloadingForNewDay) return;
+      reloadingForNewDay = true;
+      try {
+        await checkConnection();
+        window.location.replace(window.location.pathname + '?refresh=' + Date.now());
+      } catch (error) {
+        reloadingForNewDay = false;
+        noteRefreshFailure();
+      }
+    }
+
+    // 갱신 실패를 알리는 단계
+    // 0: 한 번의 실패는 곧 풀리는 경우가 많아 조용히 다시 시도한다.
+    // 1: 연달아 실패하면 보이는 식단표가 최신이 아닐 수 있다고 알린다.
+    // 2: 1분 넘게 이어지거나 사진을 끝내 못 받으면 인터넷 연결을 확인해 달라고 알린다.
+    // 새로고침은 부탁하지 않는다. 자동 재시도가 같은 일을 계속하고 있어, 연결만 돌아오면 저절로 풀린다.
+    var FAILS_BEFORE_NOTICE = 2;
+    var FAILS_BEFORE_ASKING = 5; // 0·5·15·35·75초의 다섯 번째 실패
+    var refreshFailCount = 0;
+    var imageGaveUp = false;
+
+    function updateStaleNotice() {
+      var asking = refreshFailCount >= FAILS_BEFORE_ASKING || imageGaveUp;
+      // 오류 카드가 보이는 중이면 카드가 이미 알려 주므로 첫 단계 안내는 겹쳐 띄우지 않는다.
+      var noticing = refreshFailCount >= FAILS_BEFORE_NOTICE && !hasLunchError(lunchItems);
+      var text = '최신 메뉴를 확인하지 못했습니다. 다시 시도하는 중입니다.';
+      if (asking) text = '인터넷 연결을 확인해 주세요. 연결되면 자동으로 다시 불러옵니다.';
+      var notice = document.getElementById('staleNotice');
+      notice.textContent = text;
+      notice.hidden = !asking && !noticing;
+    }
+
+    function noteRefreshFailure() {
+      refreshFailCount++;
+      updateStaleNotice();
+      retrySoon();
+    }
+
+    function noteRefreshSuccess() {
+      refreshFailCount = 0;
+      retryDelay = RETRY_DELAY_MS;
+      updateStaleNotice();
+    }
+
+    function formatSeoulDate(locale, options) {
+      options.timeZone = 'Asia/Seoul';
+      return new Intl.DateTimeFormat(locale, options).format(new Date());
+    }
+
+    // 요일은 달력처럼 토요일은 파랑, 일요일과 공휴일은 빨강으로 칠한 딱지로 보여 준다.
+    var seoulWeekday = formatSeoulDate('en-US', { weekday: 'short' });
+    var weekdayChip = document.getElementById('todayWeekday');
     document.getElementById('todayDate').textContent = formatSeoulDate('ko-KR', { month: 'long', day: 'numeric' });
     weekdayChip.textContent = formatSeoulDate('ko-KR', { weekday: 'long' });
     if (seoulWeekday === 'Sat') weekdayChip.classList.add('is-sat');
@@ -191,6 +257,7 @@
     }
 
     // 열려 있는 화면의 메뉴만 조용히 다시 받는다. 바뀐 것이 없으면 화면을 건드리지 않는다.
+    // 받지 못했거나 오류가 섞여 있으면 확인하지 못한 것으로 남겨, 될 때까지 간격을 늘려 가며 다시 시도한다.
     async function refreshLunchMenus(minInterval) {
       if (Date.now() - lastLunchFetchAt < minInterval) return;
       lastLunchFetchAt = Date.now();
@@ -198,19 +265,19 @@
         var response = await fetchWithTimeout('/api/lunch', { cache: 'no-store' });
         if (!response.ok) throw new Error('HTTP ' + response.status);
         var items = (await response.json()).items || [];
-        // 잘 보이던 식단표를 일시적인 오류나 빈 응답으로 덮지 않고, 실패로 보아 다시 시도한다.
-        if (!items.length || (hasLunchError(items) && !hasLunchError(lunchItems))) throw new Error('unusable menu');
-        retryDelay = RETRY_DELAY_MS;
-        // 크게 보는 중에는 바꾸지 않고, 닫을 때 반영한다.
-        if (isLunchModalOpen()) {
-          pendingLunchItems = items;
-          return;
+        if (!items.length) throw new Error('empty menu');
+        var failed = hasLunchError(items);
+        // 잘 보이던 식단표는 일시적인 오류로 덮지 않는다. 이미 오류 카드가 보이는 중이면 받은 만큼은 반영한다.
+        if (!failed || hasLunchError(lunchItems)) {
+          // 크게 보는 중에는 바꾸지 않고, 닫을 때 반영한다.
+          if (isLunchModalOpen()) pendingLunchItems = items;
+          else applyRefreshedLunchItems(items);
         }
-        applyRefreshedLunchItems(items);
+        if (failed) throw new Error('menu error');
+        noteRefreshSuccess();
       } catch (error) {
-        // 기존 화면은 그대로 두고, 확인하지 못한 것으로 남겨 곧 다시 시도한다.
         lastLunchFetchAt = 0;
-        retrySoon();
+        noteRefreshFailure();
       }
     }
 
@@ -229,6 +296,9 @@
           error: true,
           message: '메뉴를 불러오지 못했습니다.'
         }]);
+        // 다시 시도 버튼을 누르지 않아도 될 때까지 알아서 다시 받는다.
+        lastLunchFetchAt = 0;
+        noteRefreshFailure();
       }
     }
 
@@ -264,6 +334,46 @@
                content + '</div>';
       }).join('');
       renderLikes();
+    }
+
+    // 3-0. 사진 내려받기 실패: 주소는 받았는데 사진 파일을 못 받으면 같은 주소로 다시 받는다.
+    var IMAGE_RETRY_MAX = 5;
+    var IMAGE_RETRY_DELAY_MS = 3000;
+
+    function reloadLunchImage(img) {
+      // 같은 주소라도 다시 넣으면 브라우저가 새로 내려받는다.
+      img.src = img.getAttribute('src');
+    }
+
+    // error는 위로 전달되지 않는 이벤트라 캡처 단계에서 한 번에 받는다. 3초부터 두 배씩 늘려 다섯 번까지 시도한다.
+    document.addEventListener('error', function (event) {
+      var img = event.target;
+      if (!img.matches || !img.matches('.lunch-modal-image')) return;
+      var tries = Number(img.getAttribute('data-retry') || 0);
+      if (tries >= IMAGE_RETRY_MAX) {
+        imageGaveUp = true;
+        updateStaleNotice();
+        return;
+      }
+      img.setAttribute('data-retry', tries + 1);
+      setTimeout(function () {
+        if (img.isConnected) reloadLunchImage(img);
+      }, IMAGE_RETRY_DELAY_MS * Math.pow(2, tries));
+    }, true);
+
+    document.addEventListener('load', function (event) {
+      if (!imageGaveUp || !event.target.matches || !event.target.matches('.lunch-modal-image')) return;
+      imageGaveUp = false;
+      updateStaleNotice();
+    }, true);
+
+    // 다섯 번을 다 쓰고도 깨진 채 남은 사진은 화면에 돌아오거나 주기적으로 확인할 때 처음부터 다시 시도한다.
+    function retryBrokenLunchImages() {
+      document.querySelectorAll('.lunch-modal-image').forEach(function (img) {
+        if (!img.complete || img.naturalWidth > 0 || Number(img.getAttribute('data-retry') || 0) < IMAGE_RETRY_MAX) return;
+        img.removeAttribute('data-retry');
+        reloadLunchImage(img);
+      });
     }
 
     // 3-1. 좋아요: 하루에 한 식당만, 한 번 누를 수 있다. 저장소가 숫자를 내릴 수 없어 취소는 없다.
