@@ -605,7 +605,20 @@ h1 {
 
   .weather-cell { padding: 0 4px; }
 
-  .weather-value { font-size: 15px; }
+  /* 폭 360px에서 딱 맞는 크기를 기준으로, 큰 폰에서는 화면 폭에 비례해 키워 빈 공간을 채운다. */
+  .weather-label { font-size: clamp(11px, 3.05vw, 13px); }
+
+  .weather-value { font-size: clamp(15px, 4.17vw, 18px); }
+
+  .weather-icon {
+    width: clamp(20px, 5.55vw, 24px);
+    height: clamp(20px, 5.55vw, 24px);
+  }
+
+  .weather-dot {
+    width: clamp(9px, 2.5vw, 11px);
+    height: clamp(9px, 2.5vw, 11px);
+  }
 
   .weather-text {
     position: absolute;

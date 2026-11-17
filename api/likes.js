@@ -13,7 +13,12 @@ module.exports = async function handler(req, res) {
   }
 
   const date = getSeoulDateKey();
-  const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
+  let body = {};
+  try {
+    body = (typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body) || {};
+  } catch (error) {
+    // 읽을 수 없는 본문은 식당을 고르지 않은 요청으로 보고 아래에서 400으로 돌려준다.
+  }
   const likedId = req.method === "POST" ? body.id : null;
 
   if (req.method === "POST" && !RESTAURANT_IDS.includes(likedId)) {
@@ -22,12 +27,18 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const values = await Promise.all(
+    const results = await Promise.allSettled(
       RESTAURANT_IDS.map((id) => callAbacus(id === likedId ? "hit" : "get", id, date))
     );
     const counts = {};
     RESTAURANT_IDS.forEach((id, index) => {
-      counts[id] = values[index];
+      if (results[index].status === "fulfilled") {
+        counts[id] = results[index].value;
+        return;
+      }
+      // 좋아요는 올라갔는데 다른 식당 숫자만 못 읽은 경우는 성공으로 돌려준다.
+      // 실패로 돌려주면 다시 눌러 두 번 올라간다. 못 읽은 숫자는 빼고 보내면 화면이 보이던 값을 유지한다.
+      if (!likedId || id === likedId) throw results[index].reason;
     });
 
     // 여러 사람이 동시에 열어도 Abacus 호출이 늘지 않게 읽기 결과만 잠깐 저장한다.

@@ -240,7 +240,8 @@
     function applyLikes(payload) {
       // 같은 날에는 숫자가 줄지 않으므로, 늦게 도착한 예전 응답이 방금 누른 좋아요를 지우지 않게 큰 값을 남긴다.
       var sameDay = likeCounts && payload.date === likeDate;
-      var counts = {};
+      // 응답에 빠진 식당(서버가 못 읽은 숫자)은 보이던 값을 그대로 둔다.
+      var counts = sameDay ? Object.assign({}, likeCounts) : {};
       Object.keys(payload.counts).forEach(function (id) {
         counts[id] = sameDay ? Math.max(payload.counts[id], likeCounts[id] || 0) : payload.counts[id];
       });
@@ -546,7 +547,8 @@
         if (!response.ok) return;
         var payload = await response.json();
         if (!payload.ok) return;
-        if (counting) localStorage.setItem(VISIT_STORAGE_KEY, payload.date);
+        // 비교할 때와 같은 기기 날짜로 남겨야 기기 시계가 틀려도 다시 세지 않는다.
+        if (counting) localStorage.setItem(VISIT_STORAGE_KEY, pageLoadDateKey);
 
         // 같은 날에는 줄지 않으므로 잠깐 저장된 예전 응답이 와도 큰 값을 남긴다.
         visitCount = Math.max(visitCount, payload.count);
