@@ -479,8 +479,9 @@
       return '<svg class="weather-icon" viewBox="0 0 24 24" aria-hidden="true">' + WEATHER_ICONS[name] + '</svg>';
     }
 
-    function weatherCell(label, iconHtml, value, text) {
-      return '<div class="weather-cell">' +
+    // extra: 넓은 화면에서만 보여 주는 칸
+    function weatherCell(label, iconHtml, value, text, extra) {
+      return '<div class="weather-cell' + (extra ? ' is-extra' : '') + '">' +
         '<span class="weather-label">' + escapeHtml(label) + '</span>' +
         '<span class="weather-value">' + iconHtml + '<b>' + escapeHtml(value) + '</b>' +
         (text ? '<span class="weather-text">' + escapeHtml(text) + '</span>' : '') +
@@ -503,6 +504,12 @@
         var cells = [weatherCell(weather.location + ' 지금', weatherIcon(weather.now.icon), weather.now.temperature + '°', weather.now.text)];
         if (weather.lunch) {
           cells.push(weatherCell('12시', weatherIcon(weather.lunch.icon), weather.lunch.temperature + '°', weather.lunch.text));
+        }
+        if (weather.evening) {
+          cells.push(weatherCell('18시', weatherIcon(weather.evening.icon), weather.evening.temperature + '°', weather.evening.text, true));
+        }
+        if (weather.range) {
+          cells.push(weatherCell('최고 / 최저', '', weather.range.high + '° / ' + weather.range.low + '°', '', true));
         }
         if (weather.rain.chance != null) {
           cells.push(weatherCell(weather.rain.label + ' 강수', weatherIcon('drop'), weather.rain.chance + '%', ''));

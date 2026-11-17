@@ -9,6 +9,7 @@ const WEATHER_URL =
   `?latitude=${LOCATION.latitude}&longitude=${LOCATION.longitude}` +
   "&current=temperature_2m,weather_code" +
   "&hourly=temperature_2m,precipitation_probability,weather_code" +
+  "&daily=temperature_2m_max,temperature_2m_min" +
   "&timezone=Asia%2FSeoul&forecast_days=1";
 
 const AIR_URL =
@@ -82,13 +83,25 @@ function buildWeather(weather) {
     },
   };
 
-  const lunchIndex = hours.indexOf(LUNCH_HOUR);
-  if (currentHour < LUNCH_HOUR && lunchIndex !== -1) {
-    result.lunch = {
-      temperature: Math.round(weather.hourly.temperature_2m[lunchIndex]),
-      text: describeWeather(weather.hourly.weather_code[lunchIndex]),
-      icon: weatherIcon(weather.hourly.weather_code[lunchIndex]),
+  // 아직 오지 않은 시각의 예보만 돌려준다.
+  const forecastAt = (hour) => {
+    const index = hours.indexOf(hour);
+    if (currentHour >= hour || index === -1) return undefined;
+    return {
+      temperature: Math.round(weather.hourly.temperature_2m[index]),
+      text: describeWeather(weather.hourly.weather_code[index]),
+      icon: weatherIcon(weather.hourly.weather_code[index]),
     };
+  };
+  result.lunch = forecastAt(LUNCH_HOUR);
+  // 아래 둘은 넓은 화면에서만 보여 주는 추가 정보다.
+  result.evening = forecastAt(WORK_END_HOUR);
+
+  const daily = weather.daily || {};
+  const high = daily.temperature_2m_max && daily.temperature_2m_max[0];
+  const low = daily.temperature_2m_min && daily.temperature_2m_min[0];
+  if (high != null && low != null) {
+    result.range = { high: Math.round(high), low: Math.round(low) };
   }
 
   return result;

@@ -56,9 +56,9 @@ h1 {
 
 .visit-count[hidden] { display: none; }
 
-/* Weather: 항목 수(3~4개)가 달라져도 같은 폭으로 나뉘는 한 줄 카드 */
+/* Weather: 화면 폭을 다 쓰고, 항목 수(PC 최대 6개, 그 외 3~4개)가 달라져도 같은 폭으로 나뉘는 한 줄 카드 */
 .weather-line {
-  display: inline-grid;
+  display: grid;
   grid-auto-flow: column;
   grid-auto-columns: 1fr;
   margin: 0 0 16px;
@@ -80,6 +80,9 @@ h1 {
 }
 
 .weather-cell + .weather-cell { border-left: 1px solid var(--border); }
+
+/* 18시 날씨와 최고/최저 기온은 자리가 넉넉한 PC 화면에서만 보여 준다. */
+.weather-cell.is-extra { display: none; }
 
 .weather-label {
   font-size: 11px;
@@ -518,6 +521,8 @@ h1 {
 
   .today-date { font-size: 16px; }
 
+  .weather-cell.is-extra { display: flex; }
+
   #app {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 300px;
@@ -595,9 +600,8 @@ h1 {
     border-left: 0;
   }
 
-  /* 좁은 화면은 전체 폭을 쓰고, 날씨 글자는 아이콘으로 대신한다(읽기 프로그램에는 남긴다). */
+  /* 좁은 화면은 날씨 글자를 아이콘으로 대신한다(읽기 프로그램에는 남긴다). */
   .weather-line {
-    display: grid;
     /* "매우 나쁨"처럼 긴 값이 옆 칸에 붙지 않도록 남는 폭만 고르게 나눈다. */
     grid-auto-columns: auto;
     padding: 9px 2px;
